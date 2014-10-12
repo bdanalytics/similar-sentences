@@ -20,6 +20,7 @@ set.seed(12345)
 source("~/Dropbox/datascience/R/mydsutils.R")
 source("~/Dropbox/datascience/R/myplot.R")
 # Gather all package requirements here
+suppressPackageStartupMessages(require(knitr))
 suppressPackageStartupMessages(require(plyr))
 ```
 
@@ -31,12 +32,13 @@ setwd("~/Documents/Work/Courses/Coursera/mining-massive-datasets/Project/similar
 ```{r import_data, cache=TRUE}
 sentences_df <- myimport_data(
     "https://d396qusza40orc.cloudfront.net/mmds/datasets/sentences.txt.zip", 
-    "sentences.txt", nrows=100, stringsAsFactors=FALSE)
+    "sentences.txt", nrows=1000, stringsAsFactors=FALSE)
 names(sentences_df) <- "raw"
 ```
 
 #### Step 02.1: inspect data
 ```{r inspect_steps_1, cache=TRUE}
+dep_prev()
 # sentences_df <- mutate(sentences_df, tokens_lst=strsplit(raw, " "), 
 #                        tokens=unlist(tokens_lst))
 # sentences_df <- mutate(sentences_df, id=strsplit(raw, " ")[[1]][1])
@@ -51,7 +53,7 @@ sentences_df$words_lst <- sapply(sentences_df$raw,
                                      list(unlist(lst)[seq.int(2, length(lst))])
                                                })
 sentences_df$words_n <- sapply(sentences_df$words_lst, length)
-print(str(sentences_df))
+print(str(subset(sentences_df, select=-c(words_lst))))
 
 # List info gathered for various columns
 # raw:
@@ -59,19 +61,24 @@ print(str(sentences_df))
 # words_lst:    list:   words in this sentence
 # words_n:      int:    number of words in this sentence
 
-print(summary(sentences_df))
+#print(summary(sentences_df))
+# generates a very long output
+print(summary(subset(sentences_df, select=-c(words_lst))))
+
 #pairs(subset(entity_df, select=-c(col_symbol)))
 sentences_df <- subset(sentences_df, select=-c(raw))
 ```
 
 Sort the sentences by number of words
 ```{r hash_words_n, cache=TRUE}
+dep_prev()
 sentences_df <- sentences_df[order(sentences_df$words_n), ]
 ```
 
 Find potential pairs with edit distance at most 1 to be compared. 
 This implies that for any query sentence, we need only compare that with sentences that have +/- 1 words length 
 ```{r find_compare_pairs, cache=TRUE}
+dep_prev()
 comparison_pairs_df <- data.frame()
 #row_num <- 3
 for (row_num in seq(1:nrow(sentences_df))) {    
@@ -96,27 +103,41 @@ print(sprintf("Pairs to be checked: %s",
               format(nrow(comparison_pairs_df), big.mark=',')))
 print(sprintf("Comparison density: %0.4f", 
               nrow(comparison_pairs_df) / (nrow(sentences_df) ^ 2)))
-print(comparison_pairs_df)
+myprint_df(comparison_pairs_df)
 ```
 
 ```{r compare_pairs, cache=TRUE}
-compare_pairs_row_pos <- 2
-compare_pairs_row_id1 <- comparison_pairs_df[compare_pairs_row_pos, "query_id"]
-compare_pairs_row_id2 <- comparison_pairs_df[compare_pairs_row_pos, "compare_id"]
-compare_pairs_row_words_lst1 <- sentences_df[sentences_df$id == compare_pairs_row_id1, "words_lst"]
-compare_pairs_row_words_lst2 <- sentences_df[sentences_df$id == compare_pairs_row_id2, "words_lst"]
-
+dep_prev()
 sentence_edit_distance <- function(words_lst1, words_lst2) {
     words1 <- sort(unlist(words_lst1))
     words2 <- sort(unlist(words_lst2))
     return(length(union(words1, words2)) - length(intersect(words1, words2)))
 }
-sentence_edit_distance(compare_pairs_row_words_lst1, compare_pairs_row_words_lst2)
+#sentence_edit_distance(compare_pairs_row_words_lst1, compare_pairs_row_words_lst2)
+
+for (row in seq(1, nrow(comparison_pairs_df))) {
+    row_id1 <- comparison_pairs_df[row, "query_id"]
+    row_id2 <- comparison_pairs_df[row, "compare_id"]
+    row_words_lst1 <- sentences_df[sentences_df$id == row_id1, "words_lst"]
+    row_words_lst2 <- sentences_df[sentences_df$id == row_id2, "words_lst"]
+    comparison_pairs_df[row, "edit_distance"] <- 
+        sentence_edit_distance(row_words_lst1, row_words_lst2)
+}
+
 #comparison_pairs_df <- mutate(comparison_pairs_df, 
 #                              edit_distance=sentence_edit_distance(
 #                        sentences_df[sentences_df$id == query_id, "words_lst"],
 #                        sentences_df[sentences_df$id == compare_id, "words_lst"]
 #                                                                   ))
+
+min_edit_distance <- min(comparison_pairs_df$edit_distance)
+print(sprintf("min edit distance: %d", min_edit_distance))
+min_edit_distance_row <- 
+    comparison_pairs_df[which(comparison_pairs_df$edit_distance == 
+                              min_edit_distance), ]
+print(min_edit_distance_row)
+print(sentences_df[sentences_df$id == min_edit_distance_row$query_id, "words_lst"])
+print(sentences_df[sentences_df$id == min_edit_distance_row$compare_id, "words_lst"])
 ```
 
 ```{r print_sessionInfo, echo=FALSE}

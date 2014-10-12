@@ -69,66 +69,66 @@ set.seed(12345)
 source(&quot;~/Dropbox/datascience/R/mydsutils.R&quot;)
 source(&quot;~/Dropbox/datascience/R/myplot.R&quot;)
 # Gather all package requirements here
+suppressPackageStartupMessages(require(knitr))
 suppressPackageStartupMessages(require(plyr))</code></pre>
 </div>
 <div id="step-01-import-data" class="section level3">
 <h3>Step 01: import data</h3>
 <pre class="r"><code>sentences_df &lt;- myimport_data(
     &quot;https://d396qusza40orc.cloudfront.net/mmds/datasets/sentences.txt.zip&quot;, 
-    &quot;sentences.txt&quot;, nrows=10, stringsAsFactors=FALSE)</code></pre>
+    &quot;sentences.txt&quot;, nrows=1000, stringsAsFactors=FALSE)</code></pre>
 <pre><code>## Warning: ./data/sentences.txt does not contain header</code></pre>
 <pre><code>## [1] &quot;first 10 records:&quot;
 ## [1] 0
 ## [1] &quot;Reading file ./data/sentences.txt...&quot;</code></pre>
-<pre><code>## Warning: first 10 records read</code></pre>
-<pre><code>## [1] &quot;dimensions of data in ./data/sentences.txt: 10 rows x 1 cols&quot;
-##                                                                                                                                                                                                                                  V1
-## 1                                                                                                                                                           0 how to create property binding in a visual webgui silverlight control
-## 2                                                                                               1 videoplayer silverlight controls videoplayer videoplayer silverlight controls version 1 0 0 0 culture neutral publickeytoken null
-## 3                                      2 our continuing strategic priority is to provide a safe and efficient group of airports while pursuing development opportunities which improve the air transport network serving the region
-## 4  3 our results for the year demonstrate that we have delivered against these targets and ensured that our airports have continued to play a central role in the economic and social life of the highlands and islands and tayside
-## 5                                                                                                    4 every time i visit a fishing community in scotland i am asked to take steps to protect fishing rights for future generations
-## 6                                                                                                                       5 est o lan ados os dados para que possamos ser os actores principais do nosso futuro a viagem n o terminou
-## 7                                                                                                                                                            6 manter a rede energizada enquanto for a pessoa indicada para o fazer
-## 8                                                                                                                           7 foi uma promessa que fiz hoje quinta feira ao presidente da rep blica que esteve presente no encontro
-## 9                                                                                                                                                                 8 independente para que n o haja confus o com interesses privados
-## 10                                                                    9 a inclus o social de outros talentos de outras partes do mundo que portugal seja um local atraente para que todos os que est o l fora queiram vir para aqui
-## 'data.frame':    10 obs. of  1 variable:
+<pre><code>## Warning: first 1000 records read</code></pre>
+<pre><code>## [1] &quot;dimensions of data in ./data/sentences.txt: 1,000 rows x 1 cols&quot;
+##                                                                                                                                                                                                                                 V1
+## 1                                                                                                                                                          0 how to create property binding in a visual webgui silverlight control
+## 2                                                                                              1 videoplayer silverlight controls videoplayer videoplayer silverlight controls version 1 0 0 0 culture neutral publickeytoken null
+## 3                                     2 our continuing strategic priority is to provide a safe and efficient group of airports while pursuing development opportunities which improve the air transport network serving the region
+## 4 3 our results for the year demonstrate that we have delivered against these targets and ensured that our airports have continued to play a central role in the economic and social life of the highlands and islands and tayside
+## 5                                                                                                   4 every time i visit a fishing community in scotland i am asked to take steps to protect fishing rights for future generations
+## 6                                                                                                                      5 est o lan ados os dados para que possamos ser os actores principais do nosso futuro a viagem n o terminou
+## [1] &quot;165 yah i just found it looks kinda interesting and familiar&quot;                                                                                                                                                 
+## [2] &quot;454 were eating this same produce in mexico and we havent had any problems&quot;                                                                                                                                   
+## [3] &quot;720 were helping people see that these symbols that they hold up in worship and use as religious expression are inherently environmental&quot;                                                                     
+## [4] &quot;759 moyston has a proud footballing history and we really encourage the community to get down to the footy oval to show its support for the game and for the town&quot;                                            
+## [5] &quot;874 an episode such as this demands an independent inquiry into what went wrong so that lessons can be learned across the health service&quot;                                                                     
+## [6] &quot;883 the evidence has demonstrated that the practice of beasting which clearly falls outside appropriate military discipline was going on in these barracks openly and must have been known to senior officers&quot;
+##                                                                                                                                                                                                                       V1
+## 995                                                                                                                   994 great another hollywood starlet with issues only this one i respect and whose material i enjoy
+## 996                                       995 costarring for the first time in however many years the 2 coreys the feldog and the haimster but if you actually watch this garbage youll find out that they used the word
+## 997                                                                                                                                                            996 i have something that is going to make you very happy
+## 998  997 creo que la gran bulla que se hizo con el recorte de 1 5 billones en el presupuesto de 2008 se volvi un alka seltzer que se diluy y no se ve esa misma t nica de austeridad reflejada en el presupuesto de 2009
+## 999                                                                                                                                          998 ser a deseable que hubiera sido un presupuesto de crecimiento real cero
+## 1000                                                                                                                       999 es muy optimista lograr el crecimiento sobre el cual se estructur el presupuesto nacional
+## 'data.frame':    1000 obs. of  1 variable:
 ##  $ V1: chr  &quot;0 how to create property binding in a visual webgui silverlight control&quot; &quot;1 videoplayer silverlight controls videoplayer videoplayer silverlight controls version 1 0 0 0 culture neutral publickeytoken &quot;| __truncated__ &quot;2 our continuing strategic priority is to provide a safe and efficient group of airports while pursuing development opportuniti&quot;| __truncated__ &quot;3 our results for the year demonstrate that we have delivered against these targets and ensured that our airports have continue&quot;| __truncated__ ...
 ## NULL</code></pre>
 <pre class="r"><code>names(sentences_df) &lt;- &quot;raw&quot;</code></pre>
 <div id="step-02.1-inspect-data" class="section level4">
 <h4>Step 02.1: inspect data</h4>
-<pre class="r"><code># sentences_df &lt;- mutate(sentences_df, tokens_lst=strsplit(raw, &quot; &quot;), 
+<pre class="r"><code>dep_prev()
+# sentences_df &lt;- mutate(sentences_df, tokens_lst=strsplit(raw, &quot; &quot;), 
 #                        tokens=unlist(tokens_lst))
 # sentences_df &lt;- mutate(sentences_df, id=strsplit(raw, &quot; &quot;)[[1]][1])
 # sentences_df &lt;- mutate(sentences_df, words_n=length(words_lst))
 
 # Create new features that help analyses
 sentences_df$id &lt;- sapply(sentences_df$raw, 
-                          function(raw) strsplit(raw, &quot; &quot;)[[1]][1])
+                          function(raw) as.integer(strsplit(raw, &quot; &quot;)[[1]][1]))
 sentences_df$words_lst &lt;- sapply(sentences_df$raw, 
                                  function(raw) { 
                                      lst &lt;- strsplit(raw, &quot; &quot;)[[1]]
                                      list(unlist(lst)[seq.int(2, length(lst))])
                                                })
 sentences_df$words_n &lt;- sapply(sentences_df$words_lst, length)
-print(str(sentences_df))</code></pre>
-<pre><code>## 'data.frame':    10 obs. of  4 variables:
-##  $ raw      : chr  &quot;0 how to create property binding in a visual webgui silverlight control&quot; &quot;1 videoplayer silverlight controls videoplayer videoplayer silverlight controls version 1 0 0 0 culture neutral publickeytoken &quot;| __truncated__ &quot;2 our continuing strategic priority is to provide a safe and efficient group of airports while pursuing development opportuniti&quot;| __truncated__ &quot;3 our results for the year demonstrate that we have delivered against these targets and ensured that our airports have continue&quot;| __truncated__ ...
-##  $ id       : chr  &quot;0&quot; &quot;1&quot; &quot;2&quot; &quot;3&quot; ...
-##  $ words_lst:List of 10
-##   ..$ 0 how to create property binding in a visual webgui silverlight control                                                                                                                                                         : chr  &quot;how&quot; &quot;to&quot; &quot;create&quot; &quot;property&quot; ...
-##   ..$ 1 videoplayer silverlight controls videoplayer videoplayer silverlight controls version 1 0 0 0 culture neutral publickeytoken null                                                                                             : chr  &quot;videoplayer&quot; &quot;silverlight&quot; &quot;controls&quot; &quot;videoplayer&quot; ...
-##   ..$ 2 our continuing strategic priority is to provide a safe and efficient group of airports while pursuing development opportunities which improve the air transport network serving the region                                    : chr  &quot;our&quot; &quot;continuing&quot; &quot;strategic&quot; &quot;priority&quot; ...
-##   ..$ 3 our results for the year demonstrate that we have delivered against these targets and ensured that our airports have continued to play a central role in the economic and social life of the highlands and islands and tayside: chr  &quot;our&quot; &quot;results&quot; &quot;for&quot; &quot;the&quot; ...
-##   ..$ 4 every time i visit a fishing community in scotland i am asked to take steps to protect fishing rights for future generations                                                                                                  : chr  &quot;every&quot; &quot;time&quot; &quot;i&quot; &quot;visit&quot; ...
-##   ..$ 5 est o lan ados os dados para que possamos ser os actores principais do nosso futuro a viagem n o terminou                                                                                                                     : chr  &quot;est&quot; &quot;o&quot; &quot;lan&quot; &quot;ados&quot; ...
-##   ..$ 6 manter a rede energizada enquanto for a pessoa indicada para o fazer                                                                                                                                                          : chr  &quot;manter&quot; &quot;a&quot; &quot;rede&quot; &quot;energizada&quot; ...
-##   ..$ 7 foi uma promessa que fiz hoje quinta feira ao presidente da rep blica que esteve presente no encontro                                                                                                                         : chr  &quot;foi&quot; &quot;uma&quot; &quot;promessa&quot; &quot;que&quot; ...
-##   ..$ 8 independente para que n o haja confus o com interesses privados                                                                                                                                                               : chr  &quot;independente&quot; &quot;para&quot; &quot;que&quot; &quot;n&quot; ...
-##   ..$ 9 a inclus o social de outros talentos de outras partes do mundo que portugal seja um local atraente para que todos os que est o l fora queiram vir para aqui                                                                   : chr  &quot;a&quot; &quot;inclus&quot; &quot;o&quot; &quot;social&quot; ...
-##  $ words_n  : int  11 16 27 38 22 21 12 18 11 31
+print(str(subset(sentences_df, select=-c(words_lst))))</code></pre>
+<pre><code>## 'data.frame':    200 obs. of  3 variables:
+##  $ raw    : chr  &quot;0 how to create property binding in a visual webgui silverlight control&quot; &quot;1 videoplayer silverlight controls videoplayer videoplayer silverlight controls version 1 0 0 0 culture neutral publickeytoken &quot;| __truncated__ &quot;2 our continuing strategic priority is to provide a safe and efficient group of airports while pursuing development opportuniti&quot;| __truncated__ &quot;3 our results for the year demonstrate that we have delivered against these targets and ensured that our airports have continue&quot;| __truncated__ ...
+##  $ id     : int  0 1 2 3 4 5 6 7 8 9 ...
+##  $ words_n: int  11 16 27 38 22 21 12 18 11 31 ...
 ## NULL</code></pre>
 <pre class="r"><code># List info gathered for various columns
 # raw:
@@ -136,49 +136,108 @@ print(str(sentences_df))</code></pre>
 # words_lst:    list:   words in this sentence
 # words_n:      int:    number of words in this sentence
 
-print(summary(sentences_df))</code></pre>
-<pre><code>##      raw                 id           
-##  Length:10          Length:10         
-##  Class :character   Class :character  
-##  Mode  :character   Mode  :character  
-##                                       
-##                                       
-##                                       
-##                                       
-##                                       
-##                                       
-##                                       
-##  words_lst.Length  words_lst.Class  words_lst.Mode    words_n    
-##  11         -none-     character                   Min.   :11.0  
-##  16         -none-     character                   1st Qu.:13.0  
-##  27         -none-     character                   Median :19.5  
-##  38         -none-     character                   Mean   :20.7  
-##  22         -none-     character                   3rd Qu.:25.8  
-##  21         -none-     character                   Max.   :38.0  
-##  12         -none-     character                                 
-##  18         -none-     character                                 
-##  11         -none-     character                                 
-##  31         -none-     character</code></pre>
+#print(summary(sentences_df))
+# generates a very long output
+print(summary(subset(sentences_df, select=-c(words_lst))))</code></pre>
+<pre><code>##      raw                  id           words_n     
+##  Length:200         Min.   :  0.0   Min.   : 10.0  
+##  Class :character   1st Qu.: 49.8   1st Qu.: 13.0  
+##  Mode  :character   Median : 99.5   Median : 18.0  
+##                     Mean   : 99.5   Mean   : 26.8  
+##                     3rd Qu.:149.2   3rd Qu.: 30.0  
+##                     Max.   :199.0   Max.   :188.0</code></pre>
 <pre class="r"><code>#pairs(subset(entity_df, select=-c(col_symbol)))
 sentences_df &lt;- subset(sentences_df, select=-c(raw))</code></pre>
 <p>Sort the sentences by number of words</p>
 <pre class="r"><code>sentences_df &lt;- sentences_df[order(sentences_df$words_n), ]</code></pre>
 <p>Find potential pairs with edit distance at most 1 to be compared. This implies that for any query sentence, we need only compare that with sentences that have +/- 1 words length</p>
 <pre class="r"><code>comparison_pairs_df &lt;- data.frame()
-row_num &lt;- 3
-pos6_sentence_len &lt;- sentences_df[row_num, &quot;words_n&quot;]
-pos6_sentence_id &lt;- sentences_df[row_num, &quot;id&quot;]
-sentences_compare_df &lt;- sentences_df[(sentences_df$words_n &gt;= (pos6_sentence_len - 1)) &amp; 
-                                     (sentences_df$words_n &lt;= (pos6_sentence_len + 1)) &amp; 
-                                     (sentences_df$id != pos6_sentence_id)     
-                                     , c(&quot;id&quot;, &quot;words_n&quot;)]
-comparison_pairs_df &lt;- rbind(comparison_pairs_df, 
-                             data.frame(query_id=rep(pos6_sentence_id, 
-                                                     nrow(sentences_compare_df)),
-                                        query_words_n=rep(pos6_sentence_len, 
-                                                          nrow(sentences_compare_df)),
-                                        compare_id=sentences_compare_df$id,
-                                        compare_words_n=sentences_compare_df$words_n))</code></pre>
+#row_num &lt;- 3
+for (row_num in seq(1:nrow(sentences_df))) {    
+    row_words_n &lt;- sentences_df[row_num, &quot;words_n&quot;]
+    row_id &lt;- sentences_df[row_num, &quot;id&quot;]
+    sentences_compare_df &lt;- sentences_df[(sentences_df$words_n &gt;= (row_words_n - 1)) &amp; 
+                                         (sentences_df$words_n &lt;= (row_words_n + 1)) &amp; 
+                                         (sentences_df$id != row_id) &amp;
+                                         (sentences_df$id &lt; row_id) # to avoid dups     
+                                         , c(&quot;id&quot;, &quot;words_n&quot;)]
+    comparison_pairs_df &lt;- rbind(comparison_pairs_df, 
+                                 data.frame(query_id=rep(row_id, 
+                                                         nrow(sentences_compare_df)),
+                                            query_words_n=rep(row_words_n, 
+                                                              nrow(sentences_compare_df)),
+                                            compare_id=sentences_compare_df$id,
+                                            compare_words_n=sentences_compare_df$words_n))
+    #print(sprintf(&quot;row_num:%d&quot;, row_num))
+    #print(comparison_pairs_df)
+}
+print(sprintf(&quot;Pairs to be checked: %s&quot;, 
+              format(nrow(comparison_pairs_df), big.mark=',')))</code></pre>
+<pre><code>## [1] &quot;Pairs to be checked: 2,090&quot;</code></pre>
+<pre class="r"><code>print(sprintf(&quot;Comparison density: %0.4f&quot;, 
+              nrow(comparison_pairs_df) / (nrow(sentences_df) ^ 2)))</code></pre>
+<pre><code>## [1] &quot;Comparison density: 0.0522&quot;</code></pre>
+<pre class="r"><code>myprint_df(comparison_pairs_df)</code></pre>
+<pre><code>##   query_id query_words_n compare_id compare_words_n
+## 1       55            10          0              11
+## 2       55            10          8              11
+## 3       55            10         25              11
+## 4       65            10         55              10
+## 5       65            10          0              11
+## 6       65            10          8              11
+##      query_id query_words_n compare_id compare_words_n
+## 73        127            10        116              10
+## 318       150            11         42              12
+## 680       159            12        123              12
+## 1064      151            13         33              14
+## 1520       89            17         60              18
+## 2066       22            40         17              41
+##      query_id query_words_n compare_id compare_words_n
+## 2085       53            50         21              49
+## 2086      171            54         10              55
+## 2087       94            56         10              55
+## 2088       29            59         19              58
+## 2089      170            67         98              68
+## 2090      153           104         86             104</code></pre>
+<pre class="r"><code>sentence_edit_distance &lt;- function(words_lst1, words_lst2) {
+    words1 &lt;- sort(unlist(words_lst1))
+    words2 &lt;- sort(unlist(words_lst2))
+    return(length(union(words1, words2)) - length(intersect(words1, words2)))
+}
+#sentence_edit_distance(compare_pairs_row_words_lst1, compare_pairs_row_words_lst2)
+
+for (row in seq(1, nrow(comparison_pairs_df))) {
+    row_id1 &lt;- comparison_pairs_df[row, &quot;query_id&quot;]
+    row_id2 &lt;- comparison_pairs_df[row, &quot;compare_id&quot;]
+    row_words_lst1 &lt;- sentences_df[sentences_df$id == row_id1, &quot;words_lst&quot;]
+    row_words_lst2 &lt;- sentences_df[sentences_df$id == row_id2, &quot;words_lst&quot;]
+    comparison_pairs_df[row, &quot;edit_distance&quot;] &lt;- 
+        sentence_edit_distance(row_words_lst1, row_words_lst2)
+}
+
+#comparison_pairs_df &lt;- mutate(comparison_pairs_df, 
+#                              edit_distance=sentence_edit_distance(
+#                        sentences_df[sentences_df$id == query_id, &quot;words_lst&quot;],
+#                        sentences_df[sentences_df$id == compare_id, &quot;words_lst&quot;]
+#                                                                   ))
+
+min_edit_distance &lt;- min(comparison_pairs_df$edit_distance)
+print(sprintf(&quot;min edit distance: %d&quot;, min_edit_distance))</code></pre>
+<pre><code>## [1] &quot;min edit distance: 11&quot;</code></pre>
+<pre class="r"><code>min_edit_distance_row &lt;- 
+    comparison_pairs_df[which(comparison_pairs_df$edit_distance == 
+                              min_edit_distance), ]
+print(min_edit_distance_row)</code></pre>
+<pre><code>##    query_id query_words_n compare_id compare_words_n edit_distance
+## 31      113            10         65              10            11</code></pre>
+<pre class="r"><code>print(sentences_df[sentences_df$id == min_edit_distance_row$query_id, &quot;words_lst&quot;])</code></pre>
+<pre><code>## $`113 she has a yankees tattoo she has a yankees tattoo`
+##  [1] &quot;she&quot;     &quot;has&quot;     &quot;a&quot;       &quot;yankees&quot; &quot;tattoo&quot;  &quot;she&quot;     &quot;has&quot;    
+##  [8] &quot;a&quot;       &quot;yankees&quot; &quot;tattoo&quot;</code></pre>
+<pre class="r"><code>print(sentences_df[sentences_df$id == min_edit_distance_row$compare_id, &quot;words_lst&quot;])</code></pre>
+<pre><code>## $`65 it was a bit of a surprise it just arrived`
+##  [1] &quot;it&quot;       &quot;was&quot;      &quot;a&quot;        &quot;bit&quot;      &quot;of&quot;       &quot;a&quot;       
+##  [7] &quot;surprise&quot; &quot;it&quot;       &quot;just&quot;     &quot;arrived&quot;</code></pre>
 <pre><code>## R version 3.1.1 (2014-07-10)
 ## Platform: x86_64-apple-darwin13.1.0 (64-bit)
 ## 
@@ -190,12 +249,12 @@ comparison_pairs_df &lt;- rbind(comparison_pairs_df,
 ## [8] base     
 ## 
 ## other attached packages:
-## [1] plyr_1.8.1      doBy_4.5-10     MASS_7.3-34     survival_2.37-7
-## [5] ggplot2_1.0.0  
+## [1] plyr_1.8.1      knitr_1.6       doBy_4.5-10     MASS_7.3-34    
+## [5] survival_2.37-7 ggplot2_1.0.0  
 ## 
 ## loaded via a namespace (and not attached):
-##  [1] colorspace_1.2-4 digest_0.6.4     evaluate_0.5.5   formatR_1.0     
-##  [5] grid_3.1.1       gtable_0.1.2     htmltools_0.2.4  knitr_1.6       
+##  [1] codetools_0.2-9  colorspace_1.2-4 digest_0.6.4     evaluate_0.5.5  
+##  [5] formatR_1.0      grid_3.1.1       gtable_0.1.2     htmltools_0.2.4 
 ##  [9] lattice_0.20-29  lme4_1.1-7       Matrix_1.1-4     minqa_1.2.3     
 ## [13] munsell_0.4.2    nlme_3.1-117     nloptr_1.0.4     proto_0.3-10    
 ## [17] Rcpp_0.11.2      reshape2_1.4     rmarkdown_0.2.54 scales_0.2.4    
