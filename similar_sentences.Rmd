@@ -1,0 +1,94 @@
+---
+# Get YAML keywords from myYAML_ref.Rmd
+title: "Similar Sentences: Locality Sensitive Hashing application"
+author: "bdanalytics"
+#output: html_document
+---
+#### Date: `r format(Sys.time(), "(%a) %b %d, %Y")`
+
+Data:   
+Source: 
+Time period: 
+
+### Synopsis:
+
+Potential next steps include:
+
+```{r set_global_options}
+rm(list=ls())
+set.seed(12345)
+source("~/Dropbox/datascience/R/mydsutils.R")
+source("~/Dropbox/datascience/R/myplot.R")
+# Gather all package requirements here
+suppressPackageStartupMessages(require(plyr))
+```
+
+```{r set_global_options_wd, echo=FALSE}
+setwd("~/Documents/Work/Courses/Coursera/mining-massive-datasets/Project/similar-sentences")
+```
+
+### Step 01: import data
+```{r import_data, cache=TRUE}
+sentences_df <- myimport_data(
+    "https://d396qusza40orc.cloudfront.net/mmds/datasets/sentences.txt.zip", 
+    "sentences.txt", nrows=10, stringsAsFactors=FALSE)
+names(sentences_df) <- "raw"
+```
+
+#### Step 02.1: inspect data
+```{r inspect_steps_1, cache=TRUE}
+# sentences_df <- mutate(sentences_df, tokens_lst=strsplit(raw, " "), 
+#                        tokens=unlist(tokens_lst))
+# sentences_df <- mutate(sentences_df, id=strsplit(raw, " ")[[1]][1])
+# sentences_df <- mutate(sentences_df, words_n=length(words_lst))
+
+# Create new features that help analyses
+sentences_df$id <- sapply(sentences_df$raw, 
+                          function(raw) strsplit(raw, " ")[[1]][1])
+sentences_df$words_lst <- sapply(sentences_df$raw, 
+                                 function(raw) { 
+                                     lst <- strsplit(raw, " ")[[1]]
+                                     list(unlist(lst)[seq.int(2, length(lst))])
+                                               })
+sentences_df$words_n <- sapply(sentences_df$words_lst, length)
+print(str(sentences_df))
+
+# List info gathered for various columns
+# raw:
+# id:           int:    record id
+# words_lst:    list:   words in this sentence
+# words_n:      int:    number of words in this sentence
+
+print(summary(sentences_df))
+#pairs(subset(entity_df, select=-c(col_symbol)))
+sentences_df <- subset(sentences_df, select=-c(raw))
+```
+
+Sort the sentences by number of words
+```{r hash_words_n, cache=TRUE}
+sentences_df <- sentences_df[order(sentences_df$words_n), ]
+```
+
+Find potential pairs with edit distance at most 1 to be compared. 
+This implies that for any query sentence, we need only compare that with sentences that have +/- 1 words length 
+```{r find_compare_pairs, cache=TRUE}
+comparison_pairs_df <- data.frame()
+row_num <- 3
+pos6_sentence_len <- sentences_df[row_num, "words_n"]
+pos6_sentence_id <- sentences_df[row_num, "id"]
+sentences_compare_df <- sentences_df[(sentences_df$words_n >= (pos6_sentence_len - 1)) & 
+                                     (sentences_df$words_n <= (pos6_sentence_len + 1)) & 
+                                     (sentences_df$id != pos6_sentence_id)     
+                                     , c("id", "words_n")]
+comparison_pairs_df <- rbind(comparison_pairs_df, 
+                             data.frame(query_id=rep(pos6_sentence_id, 
+                                                     nrow(sentences_compare_df)),
+                                        query_words_n=rep(pos6_sentence_len, 
+                                                          nrow(sentences_compare_df)),
+                                        compare_id=sentences_compare_df$id,
+                                        compare_words_n=sentences_compare_df$words_n))
+```
+
+```{r print_sessionInfo, echo=FALSE}
+sessionInfo()
+```
