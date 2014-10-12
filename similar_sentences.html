@@ -124,42 +124,65 @@ sentences_df$words_lst &lt;- sapply(sentences_df$raw,
                                      list(unlist(lst)[seq.int(2, length(lst))])
                                                })
 sentences_df$words_n &lt;- sapply(sentences_df$words_lst, length)
+sentences_df$words_first &lt;- sapply(sentences_df$words_lst, 
+                                   function (words_lst) unlist(words_lst)[1])
+sentences_df$words_last &lt;- sapply(sentences_df$words_lst, 
+                                  function (words_lst) unlist(words_lst)[length(words_lst)])
 print(str(subset(sentences_df, select=-c(words_lst))))</code></pre>
-<pre><code>## 'data.frame':    200 obs. of  3 variables:
-##  $ raw    : chr  &quot;0 how to create property binding in a visual webgui silverlight control&quot; &quot;1 videoplayer silverlight controls videoplayer videoplayer silverlight controls version 1 0 0 0 culture neutral publickeytoken &quot;| __truncated__ &quot;2 our continuing strategic priority is to provide a safe and efficient group of airports while pursuing development opportuniti&quot;| __truncated__ &quot;3 our results for the year demonstrate that we have delivered against these targets and ensured that our airports have continue&quot;| __truncated__ ...
-##  $ id     : int  0 1 2 3 4 5 6 7 8 9 ...
-##  $ words_n: int  11 16 27 38 22 21 12 18 11 31 ...
+<pre><code>## 'data.frame':    1000 obs. of  5 variables:
+##  $ raw        : chr  &quot;0 how to create property binding in a visual webgui silverlight control&quot; &quot;1 videoplayer silverlight controls videoplayer videoplayer silverlight controls version 1 0 0 0 culture neutral publickeytoken &quot;| __truncated__ &quot;2 our continuing strategic priority is to provide a safe and efficient group of airports while pursuing development opportuniti&quot;| __truncated__ &quot;3 our results for the year demonstrate that we have delivered against these targets and ensured that our airports have continue&quot;| __truncated__ ...
+##  $ id         : int  0 1 2 3 4 5 6 7 8 9 ...
+##  $ words_n    : int  11 16 27 38 22 21 12 18 11 31 ...
+##  $ words_first: chr  &quot;how&quot; &quot;videoplayer&quot; &quot;our&quot; &quot;our&quot; ...
+##  $ words_last : chr  &quot;control&quot; &quot;null&quot; &quot;region&quot; &quot;tayside&quot; ...
 ## NULL</code></pre>
 <pre class="r"><code># List info gathered for various columns
 # raw:
 # id:           int:    record id
 # words_lst:    list:   words in this sentence
 # words_n:      int:    number of words in this sentence
+# words_first   string: first word in sentence
+# words_lst     string: last word in sentence
 
 #print(summary(sentences_df))
 # generates a very long output
 print(summary(subset(sentences_df, select=-c(words_lst))))</code></pre>
-<pre><code>##      raw                  id           words_n     
-##  Length:200         Min.   :  0.0   Min.   : 10.0  
-##  Class :character   1st Qu.: 49.8   1st Qu.: 13.0  
-##  Mode  :character   Median : 99.5   Median : 18.0  
-##                     Mean   : 99.5   Mean   : 26.8  
-##                     3rd Qu.:149.2   3rd Qu.: 30.0  
-##                     Max.   :199.0   Max.   :188.0</code></pre>
+<pre><code>##      raw                  id         words_n      words_first       
+##  Length:1000        Min.   :  0   Min.   : 10.0   Length:1000       
+##  Class :character   1st Qu.:250   1st Qu.: 14.0   Class :character  
+##  Mode  :character   Median :500   Median : 20.0   Mode  :character  
+##                     Mean   :500   Mean   : 24.8                     
+##                     3rd Qu.:749   3rd Qu.: 30.0                     
+##                     Max.   :999   Max.   :188.0                     
+##   words_last       
+##  Length:1000       
+##  Class :character  
+##  Mode  :character  
+##                    
+##                    
+## </code></pre>
 <pre class="r"><code>#pairs(subset(entity_df, select=-c(col_symbol)))
 sentences_df &lt;- subset(sentences_df, select=-c(raw))</code></pre>
 <p>Sort the sentences by number of words</p>
-<pre class="r"><code>sentences_df &lt;- sentences_df[order(sentences_df$words_n), ]</code></pre>
+<pre class="r"><code>dep_prev()
+sentences_df &lt;- sentences_df[order(sentences_df$words_n), ]</code></pre>
 <p>Find potential pairs with edit distance at most 1 to be compared. This implies that for any query sentence, we need only compare that with sentences that have +/- 1 words length</p>
-<pre class="r"><code>comparison_pairs_df &lt;- data.frame()
+<pre class="r"><code>dep_prev()
+comparison_pairs_df &lt;- data.frame()
 #row_num &lt;- 3
 for (row_num in seq(1:nrow(sentences_df))) {    
     row_words_n &lt;- sentences_df[row_num, &quot;words_n&quot;]
     row_id &lt;- sentences_df[row_num, &quot;id&quot;]
-    sentences_compare_df &lt;- sentences_df[(sentences_df$words_n &gt;= (row_words_n - 1)) &amp; 
-                                         (sentences_df$words_n &lt;= (row_words_n + 1)) &amp; 
-                                         (sentences_df$id != row_id) &amp;
-                                         (sentences_df$id &lt; row_id) # to avoid dups     
+    row_words_first &lt;- sentences_df[row_num, &quot;words_first&quot;]
+    row_words_last &lt;- sentences_df[row_num, &quot;words_last&quot;]
+    sentences_compare_df &lt;- sentences_df[((sentences_df$words_n &gt;= (row_words_n - 1)) &amp; 
+                                          (sentences_df$words_n &lt;= (row_words_n + 1)) &amp; 
+                                          (sentences_df$id != row_id) &amp;
+                                          (sentences_df$id &lt; row_id) # to avoid dups 
+                                         ) &amp;
+                                         ((sentences_df$words_first == row_words_first) | 
+                                          (sentences_df$words_last == row_words_last)
+                                         )
                                          , c(&quot;id&quot;, &quot;words_n&quot;)]
     comparison_pairs_df &lt;- rbind(comparison_pairs_df, 
                                  data.frame(query_id=rep(row_id, 
@@ -173,33 +196,34 @@ for (row_num in seq(1:nrow(sentences_df))) {
 }
 print(sprintf(&quot;Pairs to be checked: %s&quot;, 
               format(nrow(comparison_pairs_df), big.mark=',')))</code></pre>
-<pre><code>## [1] &quot;Pairs to be checked: 2,090&quot;</code></pre>
+<pre><code>## [1] &quot;Pairs to be checked: 1,425&quot;</code></pre>
 <pre class="r"><code>print(sprintf(&quot;Comparison density: %0.4f&quot;, 
               nrow(comparison_pairs_df) / (nrow(sentences_df) ^ 2)))</code></pre>
-<pre><code>## [1] &quot;Comparison density: 0.0522&quot;</code></pre>
+<pre><code>## [1] &quot;Comparison density: 0.0014&quot;</code></pre>
 <pre class="r"><code>myprint_df(comparison_pairs_df)</code></pre>
 <pre><code>##   query_id query_words_n compare_id compare_words_n
-## 1       55            10          0              11
-## 2       55            10          8              11
-## 3       55            10         25              11
-## 4       65            10         55              10
-## 5       65            10          0              11
-## 6       65            10          8              11
+## 1       73            10         65              10
+## 2      119            10        112              11
+## 3      163            10        150              11
+## 4      167            10        166              11
+## 5      241            10         65              10
+## 6      241            10         73              10
 ##      query_id query_words_n compare_id compare_words_n
-## 73        127            10        116              10
-## 318       150            11         42              12
-## 680       159            12        123              12
-## 1064      151            13         33              14
-## 1520       89            17         60              18
-## 2066       22            40         17              41
+## 50        601            10        332              11
+## 217       143            12         82              13
+## 464       602            14        283              13
+## 726       707            17         48              16
+## 1036      923            22        592              21
+## 1408      752            41        230              40
 ##      query_id query_words_n compare_id compare_words_n
-## 2085       53            50         21              49
-## 2086      171            54         10              55
-## 2087       94            56         10              55
-## 2088       29            59         19              58
-## 2089      170            67         98              68
-## 2090      153           104         86             104</code></pre>
-<pre class="r"><code>sentence_edit_distance &lt;- function(words_lst1, words_lst2) {
+## 1420      870            51        572              51
+## 1421      870            51        563              52
+## 1422      972            51         53              50
+## 1423      831            53        825              53
+## 1424      955            59        628              59
+## 1425      170            67         98              68</code></pre>
+<pre class="r"><code>dep_prev()
+sentence_edit_distance &lt;- function(words_lst1, words_lst2) {
     words1 &lt;- sort(unlist(words_lst1))
     words2 &lt;- sort(unlist(words_lst2))
     return(length(union(words1, words2)) - length(intersect(words1, words2)))
@@ -223,21 +247,43 @@ for (row in seq(1, nrow(comparison_pairs_df))) {
 
 min_edit_distance &lt;- min(comparison_pairs_df$edit_distance)
 print(sprintf(&quot;min edit distance: %d&quot;, min_edit_distance))</code></pre>
-<pre><code>## [1] &quot;min edit distance: 11&quot;</code></pre>
+<pre><code>## [1] &quot;min edit distance: 0&quot;</code></pre>
 <pre class="r"><code>min_edit_distance_row &lt;- 
     comparison_pairs_df[which(comparison_pairs_df$edit_distance == 
-                              min_edit_distance), ]
+                              min_edit_distance)[1], ]
 print(min_edit_distance_row)</code></pre>
 <pre><code>##    query_id query_words_n compare_id compare_words_n edit_distance
-## 31      113            10         65              10            11</code></pre>
+## 19      352            10        344              10             0</code></pre>
 <pre class="r"><code>print(sentences_df[sentences_df$id == min_edit_distance_row$query_id, &quot;words_lst&quot;])</code></pre>
-<pre><code>## $`113 she has a yankees tattoo she has a yankees tattoo`
-##  [1] &quot;she&quot;     &quot;has&quot;     &quot;a&quot;       &quot;yankees&quot; &quot;tattoo&quot;  &quot;she&quot;     &quot;has&quot;    
-##  [8] &quot;a&quot;       &quot;yankees&quot; &quot;tattoo&quot;</code></pre>
+<pre><code>## $`352 pan itu dananya normal dibilang berlimpah nggak seret juga nggak`
+##  [1] &quot;pan&quot;       &quot;itu&quot;       &quot;dananya&quot;   &quot;normal&quot;    &quot;dibilang&quot; 
+##  [6] &quot;berlimpah&quot; &quot;nggak&quot;     &quot;seret&quot;     &quot;juga&quot;      &quot;nggak&quot;</code></pre>
 <pre class="r"><code>print(sentences_df[sentences_df$id == min_edit_distance_row$compare_id, &quot;words_lst&quot;])</code></pre>
-<pre><code>## $`65 it was a bit of a surprise it just arrived`
-##  [1] &quot;it&quot;       &quot;was&quot;      &quot;a&quot;        &quot;bit&quot;      &quot;of&quot;       &quot;a&quot;       
-##  [7] &quot;surprise&quot; &quot;it&quot;       &quot;just&quot;     &quot;arrived&quot;</code></pre>
+<pre><code>## $`344 pan itu dananya normal dibilang berlimpah nggak seret juga nggak`
+##  [1] &quot;pan&quot;       &quot;itu&quot;       &quot;dananya&quot;   &quot;normal&quot;    &quot;dibilang&quot; 
+##  [6] &quot;berlimpah&quot; &quot;nggak&quot;     &quot;seret&quot;     &quot;juga&quot;      &quot;nggak&quot;</code></pre>
+<pre class="r"><code>zero_edit_distance_row &lt;- 
+    comparison_pairs_df[which(comparison_pairs_df$edit_distance == 
+                              0)[1], ]
+print(zero_edit_distance_row)</code></pre>
+<pre><code>##    query_id query_words_n compare_id compare_words_n edit_distance
+## 19      352            10        344              10             0</code></pre>
+<pre class="r"><code>print(sentences_df[sentences_df$id == zero_edit_distance_row$query_id, &quot;words_lst&quot;])</code></pre>
+<pre><code>## $`352 pan itu dananya normal dibilang berlimpah nggak seret juga nggak`
+##  [1] &quot;pan&quot;       &quot;itu&quot;       &quot;dananya&quot;   &quot;normal&quot;    &quot;dibilang&quot; 
+##  [6] &quot;berlimpah&quot; &quot;nggak&quot;     &quot;seret&quot;     &quot;juga&quot;      &quot;nggak&quot;</code></pre>
+<pre class="r"><code>print(sentences_df[sentences_df$id == zero_edit_distance_row$compare_id, &quot;words_lst&quot;])</code></pre>
+<pre><code>## $`344 pan itu dananya normal dibilang berlimpah nggak seret juga nggak`
+##  [1] &quot;pan&quot;       &quot;itu&quot;       &quot;dananya&quot;   &quot;normal&quot;    &quot;dibilang&quot; 
+##  [6] &quot;berlimpah&quot; &quot;nggak&quot;     &quot;seret&quot;     &quot;juga&quot;      &quot;nggak&quot;</code></pre>
+<pre class="r"><code>one_edit_distance_row &lt;- 
+    comparison_pairs_df[which(comparison_pairs_df$edit_distance == 
+                              1)[1], ]
+print(one_edit_distance_row)</code></pre>
+<pre><code>##    query_id query_words_n compare_id compare_words_n edit_distance
+## NA       NA            NA         NA              NA            NA</code></pre>
+<pre class="r"><code>#print(sentences_df[sentences_df$id == one_edit_distance_row$query_id, &quot;words_lst&quot;])
+#print(sentences_df[sentences_df$id == one_edit_distance_row$compare_id, &quot;words_lst&quot;])</code></pre>
 <pre><code>## R version 3.1.1 (2014-07-10)
 ## Platform: x86_64-apple-darwin13.1.0 (64-bit)
 ## 
