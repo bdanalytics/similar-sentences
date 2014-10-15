@@ -40,6 +40,7 @@ names(sentences_df) <- "raw"
 
 #### Step 02.1: inspect data
 ```{r inspect_steps_1, cache=TRUE, autodep=TRUE}
+#```{r inspect_steps_1}
 # dep_prev()
 # sentences_df <- mutate(sentences_df, tokens_lst=strsplit(raw, " "), 
 #                        tokens=unlist(tokens_lst))
@@ -79,7 +80,7 @@ sentences_df <- subset(sentences_df, select=-c(raw))
 
 Sort the sentences by number of words
 ```{r hash_words_n, cache=TRUE, autodep=TRUE}
-#dep_prev()
+#```{r hash_words_n}
 sentences_df <- sentences_df[order(sentences_df$words_n), ]
 print(head(sentences_df))
 ```
@@ -87,7 +88,8 @@ print(head(sentences_df))
 Find potential pairs with edit distance at most 1 to be compared. 
 This implies that for any query sentence, we need only compare that with sentences that have +/- 1 words length 
 ```{r find_compare_pairs, cache=TRUE, autodep=TRUE}
-#dep_prev()
+#```{r find_compare_pairs}
+print(nrow(sentences_df))
 comparison_pairs_df <- data.frame()
 #row_pos <- which(sentences_df$id == 352)
 loop_step_id_set <- c(  "1_Identified_Query"
@@ -160,7 +162,13 @@ loop_steps_plot_df <- melt(loop_steps_time_df, id="loop_step_id",
 p <- ggplot(data=loop_steps_plot_df, mapping=aes(x=loop_step_id, y=value)) + 
         geom_line(aes(group=variable, color=variable)) 
 #p <- p + scale_x_discrete(limits=rev(levels(loop_steps_plot_df$loop_step_id)))
-print(p)    
+print(p)
+
+loop_steps_time_df$user_diff <- sapply(seq(1, nrow(loop_steps_time_df)), 
+                                       function(step) ifelse(step <= 1, 
+                                                             NA,
+    loop_steps_time_df[step, "user"] - loop_steps_time_df[step - 1, "user"]))
+print(loop_steps_time_df)
 
 print(sprintf("Pairs to be checked: %s", 
               format(nrow(comparison_pairs_df), big.mark=',')))
@@ -169,8 +177,8 @@ print(sprintf("Comparison density: %0.4f",
 myprint_df(comparison_pairs_df)
 ```
 
-```{r compare_pairs, cache=TRUE}
-dep_prev()
+#```{r compare_pairs, cache=TRUE, autodep=TRUE}
+```{r compare_pairs}
 sentence_edit_distance <- function(words_lst1, words_lst2) {
     words1 <- sort(unlist(words_lst1))
     words2 <- sort(unlist(words_lst2))
