@@ -92,8 +92,6 @@ This implies that for any query sentence, we need only compare that with sentenc
 ```{r find_compare_pairs_old, cache=TRUE, autodep=TRUE}
 #```{r find_compare_pairs_old}
 print(nrow(sentences_df))
-comparison_pairs_df <- data.frame()
-#row_pos <- which(sentences_df$id == 352)
 loop_step_id_set <- c(  "1_Identified_Query"
                       , "2_Filtered_Length"
                       , "3_Filtered_Dups"
@@ -110,6 +108,7 @@ for (loop_step_id in loop_df$loop_step_id) {
     ptm <- proc.time()
     ptm_diff <- proc.time() - ptm
 
+    comparison_pairs_df <- data.frame()
     for (row_pos in seq(1:nrow(sentences_df))) {    
         
         if (loop_step_id >= loop_step_id_set[1]) {
@@ -184,7 +183,6 @@ Let's try initializing comparison_pairs_df to estimated density
 #```{r find_compare_pairs, cache=TRUE, autodep=TRUE}
 ```{r find_compare_pairs}
 print(nrow(sentences_df))
-#row_pos <- which(sentences_df$id == 352)
 loop_step_id_set <- c(  "1_Identified_Query"
                       , "2_Filtered_Length"
                       , "3_Filtered_Dups"
@@ -201,6 +199,9 @@ for (loop_step_id in loop_df$loop_step_id) {
     ptm <- proc.time()
     ptm_diff <- proc.time() - ptm
 
+    comparison_pairs_n_est <- (nrow(sentences_df) ^ 2) * 0.0014 * 1.05
+    comparison_pairs_df <- data.frame(query_id=rep(-1, comparison_pairs_n_est),
+                                      compare_id=rep(-1, comparison_pairs_n_est))
     comparison_pairs_urow <- 0
     for (row_pos in seq(1:nrow(sentences_df))) {    
         
@@ -235,11 +236,12 @@ for (loop_step_id in loop_df$loop_step_id) {
         
         if (toString(loop_step_id) >= toString(loop_step_id_set[5])) {
             query_pairs_df <- 
-                      data.frame(query_id=rep(row_id, nrow(sentences_compare_df)),
-                                 query_words_n=rep(row_words_n, 
-                                                   nrow(sentences_compare_df)),
-                                 compare_id=sentences_compare_df$id,
-                                 compare_words_n=sentences_compare_df$words_n)
+                      data.frame(  query_id=rep(row_id, nrow(sentences_compare_df))
+                                 #, query_words_n=rep(row_words_n, 
+                                 #                    nrow(sentences_compare_df))
+                                 , compare_id=sentences_compare_df$id
+                                 #, compare_words_n=sentences_compare_df$words_n
+                                )
         }
             
         if ((toString(loop_step_id) >= toString(loop_step_id_set[6])) & 
@@ -256,7 +258,9 @@ for (loop_step_id in loop_df$loop_step_id) {
     loop_df[loop_df$loop_step_id == loop_step_id, 
                        names(summary(ptm_diff))] <- summary(ptm_diff)
 }
-print(all.equal(comparison_pairs_df, comparison_pairs_old_df))
+comparison_pairs_df <- subset(comparison_pairs_df, query_id > -1)
+print(all.equal(comparison_pairs_df, 
+                comparison_pairs_old_df[, c("query_id", "compare_id")]))
 #print(loop_df)
 loop_steps_plot_df <- melt(loop_df, id="loop_step_id", 
                            measure=c("user", "system", "elapsed"))
@@ -328,7 +332,14 @@ if (!is.na(zero_edit_distance_row$query_id)) {
 one_edit_distance_rows <- 
     comparison_pairs_df[which(comparison_pairs_df$edit_distance == 
                               1), ]
-
+one_edit_distance_rows <- merge(one_edit_distance_rows, 
+                                sentences_df[, c("id", "words_n")], 
+                                by.x="query_id", by.y="id")
+names(one_edit_distance_rows)[4] <- "query_words_n"
+one_edit_distance_rows <- merge(one_edit_distance_rows, 
+                                sentences_df[, c("id", "words_n")], 
+                                by.x="compare_id", by.y="id")
+names(one_edit_distance_rows)[5] <- "compare_words_n"
 one_edit_distance_ad_row <- subset(one_edit_distance_rows, 
                                    query_words_n != compare_words_n)[1, ]
 print(paste0("edit_distance==1(A/D): ", toString(one_edit_distance_ad_row)))
