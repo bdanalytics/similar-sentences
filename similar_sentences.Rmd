@@ -80,113 +80,13 @@ Sort the sentences by number of words
 #```{r hash_words_n}
 sentences_df <- sentences_df[order(sentences_df$words_n), ]
 print(head(sentences_df))
+print(myplot_histogram(sentences_df, "words_n"))
 ```
 
 Find potential pairs with edit distance at most 1 to be compared. 
 This implies that for any query sentence, we need only compare that with sentences that have +/- 1 words length 
 ```{r find_compare_pairs_old, cache=TRUE, autodep=TRUE}
 #```{r find_compare_pairs_old}
-print(nrow(sentences_df))
-loop_step_id_set <- c(  "1_Identified_Query"
-                      , "2_Filtered_Length"
-                      , "3_Filtered_Dups"
-                      , "4_Filtered_FirstLast"
-                      , "5_Created_DFrame"
-                      , "6_Appended_DFrame"
-                     )
-loop_df <- data.frame(loop_step_id=loop_step_id_set)
-loop_df[, names(summary(proc.time()))] <- 
-    rep(0, length(names(summary(proc.time()))) * nrow(loop_df)) 
-
-for (loop_step_id in loop_df$loop_step_id) {
-#for (loop_step_id in loop_df$loop_step_id[6:6]) {   
-    ptm <- proc.time()
-    ptm_diff <- proc.time() - ptm
-
-    comparison_pairs_n_est <- (nrow(sentences_df) ^ 2) * 0.0014 * 1.05
-    comparison_pairs_df <- data.frame(query_id=rep(-1, comparison_pairs_n_est),
-                                      compare_id=rep(-1, comparison_pairs_n_est))
-    comparison_pairs_urow <- 0
-    for (row_pos in seq(1:nrow(sentences_df))) {    
-        
-        if (toString(loop_step_id) >= toString(loop_step_id_set[1])) {
-            row_words_n <- sentences_df[row_pos, "words_n"]
-            row_id <- sentences_df[row_pos, "id"]
-            row_words_first <- sentences_df[row_pos, "words_first"]
-            row_words_last <- sentences_df[row_pos, "words_last"]
-        }
-        
-        if (toString(loop_step_id) >= toString(loop_step_id_set[2])) {
-            sentences_chk_df <- subset(sentences_df, 
-                                       (sentences_df$words_n >= (row_words_n - 1)) & 
-                                       (sentences_df$words_n <= (row_words_n + 1))
-                                      )
-        }
-        
-        if (toString(loop_step_id) >= toString(loop_step_id_set[3])) {        
-            sentences_chk_df <- subset(sentences_chk_df,
-                                       (sentences_chk_df$id != row_id) &
-                                       (sentences_chk_df$id < row_id) # to avoid dups       
-                                      )
-        }
-        
-        if (toString(loop_step_id) >= toString(loop_step_id_set[4])) {        
-            sentences_compare_df <- sentences_chk_df[ 
-                                ((sentences_chk_df$words_first == row_words_first) | 
-                                 (sentences_chk_df$words_last == row_words_last)
-                                )
-                                                     , c("id", "words_n")]
-        }
-        
-        if (toString(loop_step_id) >= toString(loop_step_id_set[5])) {
-            query_pairs_df <- 
-                      data.frame(  query_id=rep(row_id, nrow(sentences_compare_df))
-                                 #, query_words_n=rep(row_words_n, 
-                                 #                    nrow(sentences_compare_df))
-                                 , compare_id=sentences_compare_df$id
-                                 #, compare_words_n=sentences_compare_df$words_n
-                                )
-        }
-            
-        if (toString(loop_step_id) >= toString(loop_step_id_set[6])) 
-            if (nrow(query_pairs_df) > 0) {            
-                comparison_pairs_df[(comparison_pairs_urow + 1):
-                                    (comparison_pairs_urow + nrow(query_pairs_df)),
-                                   ] <- query_pairs_df
-                comparison_pairs_urow <- comparison_pairs_urow + nrow(query_pairs_df) 
-        }
-    }
-    comparison_pairs_df <- subset(comparison_pairs_df, query_id > -1)
-    ptm_diff <- proc.time() - ptm
-    loop_df[loop_df$loop_step_id == loop_step_id, 
-                       names(summary(ptm_diff))] <- summary(ptm_diff)
-}
-comparison_pairs_df <- subset(comparison_pairs_df, query_id > -1)
-
-loop_steps_plot_df <- melt(loop_df, id="loop_step_id", 
-                           measure=c("user", "system", "elapsed"))
-p <- ggplot(data=loop_steps_plot_df, mapping=aes(x=loop_step_id, y=value)) + 
-        geom_line(aes(group=variable, color=variable)) 
-print(p)
-
-loop_df$user_diff <- sapply(seq(1, nrow(loop_df)), 
-                                       function(step) ifelse(step <= 1, 
-                                                             NA,
-    loop_df[step, "user"] - loop_df[step - 1, "user"]))
-print(loop_df)
-
-print(sprintf("Pairs to be checked: %s", 
-              format(nrow(comparison_pairs_df), big.mark=',')))
-print(sprintf("Comparison density: %0.4f", 
-              nrow(comparison_pairs_df) / (nrow(sentences_df) ^ 2)))
-myprint_df(comparison_pairs_df)
-
-comparison_pairs_old_df <- comparison_pairs_df
-```
-
-Let's try initializing comparison_pairs_df to estimated density
-#```{r find_compare_pairs, cache=TRUE, autodep=TRUE}
-```{r find_compare_pairs}
 print(nrow(sentences_df))
 loop_step_id_set <- c(  "1_Identified_Query"
                       , "2_Filtered_Length"
@@ -202,7 +102,7 @@ for (loop_step_id in loop_df$loop_step_id) {
 #for (loop_step_id in loop_df$loop_step_id[6:6]) {   
     ptm <- proc.time()
     ptm_diff <- proc.time() - ptm
-
+    
     comparison_pairs_n_est <- (nrow(sentences_df) ^ 2) * 0.0014 * 1.05
     comparison_pairs_df <- data.frame(query_id=rep(-1, comparison_pairs_n_est),
                                       compare_id=rep(-1, comparison_pairs_n_est))
@@ -277,8 +177,130 @@ print(sprintf("Comparison density: %0.4f",
               nrow(comparison_pairs_df) / (nrow(sentences_df) ^ 2)))
 myprint_df(comparison_pairs_df)
 
+comparison_pairs_old_df <- comparison_pairs_df
+```
+
+Let's try initializing comparison_pairs_df to estimated density
+#```{r find_compare_pairs, cache=TRUE, autodep=TRUE}
+```{r find_compare_pairs}
+print(nrow(sentences_df))
+loop_step_id_set <- c(  "1_Identified_Query"
+                      , "2_Filtered_Length"
+                      , "3_Filtered_Dups"
+                      , "4_Filtered_FirstLast"
+                      , "5_Appended_DFrame"
+                     )
+loop_df <- data.frame(loop_step_id=loop_step_id_set)
+loop_df[, names(summary(proc.time()))] <- 
+    rep(0, length(names(summary(proc.time()))) * nrow(loop_df)) 
+
+for (loop_step_id in loop_df$loop_step_id) {
+#for (loop_step_id in loop_df$loop_step_id[6:6]) {   
+    ptm <- proc.time()
+    ptm_diff <- proc.time() - ptm
+
+    sntnc_lengths_df <- data.frame(words_n=unique(sentences_df$words_n))
+    sntnc_lengths_df$pos_beg <- 1
+    sntnc_lengths_df$pos_end <- nrow(sentences_df)
+    myprint_df(sntnc_lengths_df)
+    sntnc_lengths_cursor <- 1
+    for (row_pos in seq(1:nrow(sentences_df))) {
+        this_words_n <- sentences_df[row_pos, "words_n"]
+        if (sntnc_lengths_df[sntnc_lengths_cursor, "words_n"] < this_words_n) {
+            sntnc_lengths_df[sntnc_lengths_cursor, "pos_end"] <- row_pos - 1           
+            sntnc_lengths_cursor <- sntnc_lengths_cursor + 1
+            if (sntnc_lengths_df[sntnc_lengths_cursor, "words_n"] != this_words_n)
+                stop("this should not happen")
+            
+            sntnc_lengths_df[sntnc_lengths_cursor, "pos_beg"] <- row_pos
+        }
+    }
+    myprint_df(sntnc_lengths_df)
+
+    comparison_pairs_n_est <- (nrow(sentences_df) ^ 2) * 0.0014 * 1.05
+    comparison_pairs_df <- data.frame(query_id=rep(-1, comparison_pairs_n_est),
+                                      compare_id=rep(-1, comparison_pairs_n_est))
+    comparison_pairs_urow <- 0
+    for (row_pos in seq(1:nrow(sentences_df))) {    
+        
+        if (toString(loop_step_id) >= toString(loop_step_id_set[1])) {
+            row_words_n <- sentences_df[row_pos, "words_n"]
+            row_id <- sentences_df[row_pos, "id"]
+            row_words_first <- sentences_df[row_pos, "words_first"]
+            row_words_last <- sentences_df[row_pos, "words_last"]
+        }
+        
+        if (toString(loop_step_id) >= toString(loop_step_id_set[2])) {
+            sntnc_lengths_row_pos <- 
+                which(sntnc_lengths_df$words_n == row_words_n)
+            
+            if (sntnc_lengths_row_pos != 1) { 
+                pos_beg <- sntnc_lengths_df[sntnc_lengths_row_pos - 1, "pos_beg"]
+            } else pos_beg <- 1
+            
+            if (sntnc_lengths_row_pos != nrow(sntnc_lengths_df)) {
+                pos_end <- sntnc_lengths_df[sntnc_lengths_row_pos + 1, "pos_end"]
+            } else pos_end <- nrow(sentences_df)
+                
+            sentences_chk_df <- sentences_df[pos_beg:pos_end ,] 
+        }
+        
+        if (toString(loop_step_id) >= toString(loop_step_id_set[3])) {        
+            sentences_chk_df <- subset(sentences_chk_df,
+                                       (sentences_chk_df$id != row_id) &
+                                       (sentences_chk_df$id < row_id) # to avoid dups       
+                                      )
+        }
+        
+        if (toString(loop_step_id) >= toString(loop_step_id_set[4])) {        
+            sentences_compare_df <- sentences_chk_df[ 
+                                ((sentences_chk_df$words_first == row_words_first) | 
+                                 (sentences_chk_df$words_last == row_words_last)
+                                )
+                                                     , c("id", "words_n")]
+        }
+        
+        if (toString(loop_step_id) >= toString(loop_step_id_set[5])) { 
+            newpairs_n <- nrow(sentences_compare_df)
+            if (newpairs_n > 0) {            
+                comparison_pairs_df[(comparison_pairs_urow + 1):
+                                    (comparison_pairs_urow + newpairs_n),
+                                    "query_id"] <- 
+                    rep(row_id, newpairs_n)
+                comparison_pairs_df[(comparison_pairs_urow + 1):
+                                    (comparison_pairs_urow + newpairs_n),
+                                    "compare_id"] <- sentences_compare_df$id
+
+                comparison_pairs_urow <- comparison_pairs_urow + newpairs_n
+            }    
+        }
+    }
+    comparison_pairs_df <- subset(comparison_pairs_df, query_id > -1)
+    ptm_diff <- proc.time() - ptm
+    loop_df[loop_df$loop_step_id == loop_step_id, 
+                       names(summary(ptm_diff))] <- summary(ptm_diff)
+}
+comparison_pairs_df <- subset(comparison_pairs_df, query_id > -1)
+
+loop_steps_plot_df <- melt(loop_df, id="loop_step_id", 
+                           measure=c("user", "system", "elapsed"))
+p <- ggplot(data=loop_steps_plot_df, mapping=aes(x=loop_step_id, y=value)) + 
+        geom_line(aes(group=variable, color=variable)) 
+print(p)
+
+loop_df$user_diff <- sapply(seq(1, nrow(loop_df)), 
+                            function(step) ifelse(step <= 1, NA,
+                            loop_df[step, "user"] - loop_df[step - 1, "user"]))
+print(loop_df)
+
+print(sprintf("Pairs to be checked: %s", 
+              format(nrow(comparison_pairs_df), big.mark=',')))
+print(sprintf("Comparison density: %0.4f", 
+              nrow(comparison_pairs_df) / (nrow(sentences_df) ^ 2)))
+myprint_df(comparison_pairs_df)
+
 print(all.equal(comparison_pairs_df, 
-                comparison_pairs_old_df[, c("query_id", "compare_id")]))
+                comparison_pairs_old_df))
 ```
 
 ```{r compare_pairs, cache=TRUE, autodep=TRUE}
