@@ -37,7 +37,7 @@ stm_diff <- proc.time() - stm
 script_time_df <- data.frame(chunk="initialize_script", elapsed=stm_diff["elapsed"])
 ```
 
-### Step 01: import data
+### import data
 ```{r import_data, cache=TRUE}
 sentences_df <- myimport_data(
     "https://d396qusza40orc.cloudfront.net/mmds/datasets/sentences.txt.zip", 
@@ -251,11 +251,14 @@ script_time_df <- rbind(script_time_df,
 ```
 
 
-#```{r compare_pairs, cache=TRUE, autodep=TRUE}
-```{r compare_pairs}
+```{r compare_pairs_old, cache=TRUE, autodep=TRUE}
+#```{r compare_pairs_old}
 sentence_edit_distance <- function(words_lst1, words_lst2) {
-    words1 <- sort(unlist(words_lst1))
-    words2 <- sort(unlist(words_lst2))
+#     words1 <- sort(unlist(words_lst1))
+#     words2 <- sort(unlist(words_lst2))
+    words1 <- unlist(words_lst1)
+    words2 <- unlist(words_lst2)
+
     distance <- length(union(words1, words2)) - length(intersect(words1, words2))
     # account for substitutions
     if ((distance == 2) & (length(words1) == length(words2)))
@@ -263,15 +266,141 @@ sentence_edit_distance <- function(words_lst1, words_lst2) {
     return(distance)
 }
 
-for (row in seq(1, nrow(comparison_pairs_df))) {
-    row_id1 <- comparison_pairs_df[row, "query_id"]
-    row_id2 <- comparison_pairs_df[row, "compare_id"]
-    row_words_lst1 <- sentences_df[sentences_df$id == row_id1, "words_lst"]
-    row_words_lst2 <- sentences_df[sentences_df$id == row_id2, "words_lst"]
-    comparison_pairs_df[row, "edit_distance"] <- 
-        sentence_edit_distance(row_words_lst1, row_words_lst2)
+loop_step_id_set <- c(  "1_comparison_pairs_df_access"
+                      , "2_sentences_df_access"
+                      , "3_update_edit_distance"
+                     )
+loop_df <- data.frame(loop_step_id=loop_step_id_set)
+loop_df[, names(summary(proc.time()))] <- 
+    rep(0, length(names(summary(proc.time()))) * nrow(loop_df)) 
+
+for (loop_step_id in loop_df$loop_step_id) {
+#for (loop_step_id in loop_df[nrow(loop_df), "loop_step_id"]) {   
+    ptm <- proc.time()
+    ptm_diff <- proc.time() - ptm
+    
+    for (row in seq(1, nrow(comparison_pairs_df))) {
+        
+        if (toString(loop_step_id) >= toString(loop_step_id_set[1])) {
+            row_id1 <- comparison_pairs_df[row, "query_id"]
+            row_id2 <- comparison_pairs_df[row, "compare_id"]
+        }
+                
+        if (toString(loop_step_id) >= toString(loop_step_id_set[2])) {
+            row_words_lst1 <- sentences_df[sentences_df$id == row_id1, "words_lst"]
+            row_words_lst2 <- sentences_df[sentences_df$id == row_id2, "words_lst"]
+        }
+        
+        if (toString(loop_step_id) >= toString(loop_step_id_set[3])) {
+            comparison_pairs_df[row, "edit_distance"] <- 
+                sentence_edit_distance(row_words_lst1, row_words_lst2)
+        }
+    }
+    
+    ptm_diff <- proc.time() - ptm
+    loop_df[loop_df$loop_step_id == loop_step_id, 
+                       names(summary(ptm_diff))] <- summary(ptm_diff)
+}
+loop_steps_plot_df <- melt(loop_df, id="loop_step_id", 
+                           measure=c("user", "system", "elapsed"))
+p <- ggplot(data=loop_steps_plot_df, mapping=aes(x=loop_step_id, y=value)) + 
+        geom_line(aes(group=variable, color=variable)) 
+print(p)
+loop_df$user_diff <- sapply(seq(1, nrow(loop_df)), 
+                            function(step) ifelse(step <= 1, 0,
+                            loop_df[step, "user"] - loop_df[step - 1, "user"]))
+print(loop_df)
+
+comparison_pairs_old_df <- comparison_pairs_df
+
+stm_diff <- proc.time() - stm
+script_time_df <- rbind(script_time_df, 
+                        data.frame(chunk="compare_pairs_old", 
+                                   elapsed=stm_diff["elapsed"]))
+```
+
+```{r compare_pairs, cache=TRUE, autodep=TRUE}
+#```{r compare_pairs}
+
+# create a reverse index table of sentences_df to fast index into sentences_df 
+#   given a sentences_df$id 
+sntnc_pos_df <- data.frame(pos=rep(-1, max(sentences_df$id)),
+                           id=seq(1, max(sentences_df$id)))
+for (row_pos in seq(1:nrow(sentences_df))) {
+    sntnc_pos_df[sentences_df[row_pos, "id"], "pos"] <- row_pos
+}
+myprint_df(sntnc_pos_df)
+
+sentence_edit_distance <- function(words_lst1, words_lst2) {
+#     words1 <- sort(unlist(words_lst1))
+#     words2 <- sort(unlist(words_lst2))
+    words1 <- unlist(words_lst1)
+    words2 <- unlist(words_lst2)
+    
+    distance <- length(union(words1, words2)) - length(intersect(words1, words2))
+    # account for substitutions
+    if ((distance == 2) & (length(words1) == length(words2)))
+        distance <- 1
+    return(distance)
 }
 
+loop_step_id_set <- c(  "1_comparison_pairs_df_access"
+                      , "2_sentences_df_access"
+                      , "3_update_edit_distance"
+                     )
+loop_df <- data.frame(loop_step_id=loop_step_id_set)
+loop_df[, names(summary(proc.time()))] <- 
+    rep(0, length(names(summary(proc.time()))) * nrow(loop_df)) 
+
+for (loop_step_id in loop_df$loop_step_id) {
+#for (loop_step_id in loop_df[nrow(loop_df), "loop_step_id"]) {   
+    ptm <- proc.time()
+    ptm_diff <- proc.time() - ptm
+    
+    for (row in seq(1, nrow(comparison_pairs_df))) {
+        
+        if (toString(loop_step_id) >= toString(loop_step_id_set[1])) {
+            row_id1 <- comparison_pairs_df[row, "query_id"]
+            row_id2 <- comparison_pairs_df[row, "compare_id"]
+        }
+                
+        if (toString(loop_step_id) >= toString(loop_step_id_set[2])) {
+#             row_words_lst1 <- sentences_df[sentences_df$id == row_id1, "words_lst"]
+#             row_words_lst2 <- sentences_df[sentences_df$id == row_id2, "words_lst"]
+            row_words_lst1 <- sentences_df[sntnc_pos_df[row_id1, "pos"], "words_lst"]
+            row_words_lst2 <- sentences_df[sntnc_pos_df[row_id2, "pos"], "words_lst"]
+        }
+        
+        if (toString(loop_step_id) >= toString(loop_step_id_set[3])) {
+            comparison_pairs_df[row, "edit_distance"] <- 
+                sentence_edit_distance(row_words_lst1, row_words_lst2)
+        }
+    }
+    
+    ptm_diff <- proc.time() - ptm
+    loop_df[loop_df$loop_step_id == loop_step_id, 
+                       names(summary(ptm_diff))] <- summary(ptm_diff)
+}
+loop_steps_plot_df <- melt(loop_df, id="loop_step_id", 
+                           measure=c("user", "system", "elapsed"))
+p <- ggplot(data=loop_steps_plot_df, mapping=aes(x=loop_step_id, y=value)) + 
+        geom_line(aes(group=variable, color=variable)) 
+print(p)
+loop_df$user_diff <- sapply(seq(1, nrow(loop_df)), 
+                            function(step) ifelse(step <= 1, 0,
+                            loop_df[step, "user"] - loop_df[step - 1, "user"]))
+print(loop_df)
+
+print(all.equal(comparison_pairs_df, 
+                comparison_pairs_old_df))
+
+stm_diff <- proc.time() - stm
+script_time_df <- rbind(script_time_df, 
+                        data.frame(chunk="compare_pairs", 
+                                   elapsed=stm_diff["elapsed"]))
+```
+
+```{r inspect_results, cache=TRUE, autodep=TRUE}
 zero_edit_distance_row <- 
     comparison_pairs_df[which(comparison_pairs_df$edit_distance == 
                               0)[1], ]
@@ -354,7 +483,7 @@ print(sprintf("Number of sentence pairs within edit distance of 1: %s",
 
 stm_diff <- proc.time() - stm
 script_time_df <- rbind(script_time_df, 
-                        data.frame(chunk="compare_pairs", 
+                        data.frame(chunk="inspect_results", 
                                    elapsed=stm_diff["elapsed"]))
 ```
 
