@@ -15,7 +15,7 @@ Time period:
 
 Potential next steps include:
 
-```{r set_global_options}
+```{r initialize_script}
 rm(list=ls())
 suppressPackageStartupMessages(require(knitr))
 work_dir <- "~/Documents/Work/Courses/Coursera/mining-massive-datasets/Project/similar-sentences" 
@@ -31,6 +31,10 @@ source("~/Dropbox/datascience/R/myplot.R")
 # Gather all package requirements here
 suppressPackageStartupMessages(require(plyr))
 suppressPackageStartupMessages(require(reshape))
+
+stm <- proc.time()
+stm_diff <- proc.time() - stm
+script_time_df <- data.frame(chunk="initialize_script", elapsed=stm_diff["elapsed"])
 ```
 
 ### Step 01: import data
@@ -39,11 +43,14 @@ sentences_df <- myimport_data(
     "https://d396qusza40orc.cloudfront.net/mmds/datasets/sentences.txt.zip", 
     "sentences.txt", nrows=4000, stringsAsFactors=FALSE)
 names(sentences_df) <- "raw"
+
+stm_diff <- proc.time() - stm
+script_time_df <- rbind(script_time_df, 
+                        data.frame(chunk="import_data", elapsed=stm_diff["elapsed"]))
 ```
 
-#### Step 02.1: inspect data
-#```{r inspect_steps_1, cache=TRUE, autodep=TRUE}
-```{r inspect_steps_1}
+#```{r inspect_data, cache=TRUE, autodep=TRUE}
+```{r inspect_data}
 
 # Create new features that help analyses
 sentences_df$id <- sapply(sentences_df$raw, 
@@ -73,6 +80,10 @@ print(str(subset(sentences_df, select=-c(words_lst))))
 print(summary(subset(sentences_df, select=-c(words_lst))))
 
 sentences_df <- subset(sentences_df, select=-c(raw))
+
+stm_diff <- proc.time() - stm
+script_time_df <- rbind(script_time_df, 
+                        data.frame(chunk="inspect_data", elapsed=stm_diff["elapsed"]))
 ```
 
 Sort the sentences by number of words
@@ -101,6 +112,10 @@ for (row_pos in seq(1:nrow(sentences_df))) {
         }
     }
 myprint_df(sntnc_lengths_df)
+
+stm_diff <- proc.time() - stm
+script_time_df <- rbind(script_time_df, 
+                        data.frame(chunk="hash_words_n", elapsed=stm_diff["elapsed"]))
 ```
 
 Find potential pairs with edit distance at most 1 to be compared. 
@@ -109,6 +124,11 @@ This implies that for any query sentence, we need only compare that with sentenc
 #```{r find_compare_pairs_old}
 
 #comparison_pairs_old_df <- comparison_pairs_df
+
+stm_diff <- proc.time() - stm
+script_time_df <- rbind(script_time_df, 
+                        data.frame(chunk="find_compare_pairs_old", 
+                                   elapsed=stm_diff["elapsed"]))
 ```
 
 Let's try initializing comparison_pairs_df to estimated density
@@ -130,8 +150,8 @@ loop_df <- data.frame(loop_step_id=loop_step_id_set)
 loop_df[, names(summary(proc.time()))] <- 
     rep(0, length(names(summary(proc.time()))) * nrow(loop_df)) 
 
-for (loop_step_id in loop_df$loop_step_id) {
-#for (loop_step_id in loop_df$loop_step_id[6:6]) {   
+#for (loop_step_id in loop_df$loop_step_id) {
+for (loop_step_id in loop_df$loop_step_id[5:5]) {   
     ptm <- proc.time()
     ptm_diff <- proc.time() - ptm
 
@@ -178,13 +198,20 @@ for (loop_step_id in loop_df$loop_step_id) {
         if (toString(loop_step_id) >= toString(loop_step_id_set[5])) { 
             newpairs_n <- nrow(sentences_compare_df)
             if (newpairs_n > 0) {            
-                comparison_pairs_df[(comparison_pairs_urow + 1):
-                                    (comparison_pairs_urow + newpairs_n),
-                                    "query_id"] <- 
-                    rep(row_id, newpairs_n)
-                comparison_pairs_df[(comparison_pairs_urow + 1):
-                                    (comparison_pairs_urow + newpairs_n),
-                                    "compare_id"] <- sentences_compare_df$id
+               comparison_pairs_df[(comparison_pairs_urow + 1):
+                                   (comparison_pairs_urow + newpairs_n),
+                                   "query_id"] <- 
+                   rep(row_id, newpairs_n)
+               comparison_pairs_df[(comparison_pairs_urow + 1):
+                                   (comparison_pairs_urow + newpairs_n),
+                                   "compare_id"] <- sentences_compare_df$id
+
+                # this approach takes longer probably due to the collecting on
+                #   the rhs
+#                 comparison_pairs_df[(comparison_pairs_urow + 1):
+#                                     (comparison_pairs_urow + newpairs_n),
+#                                     c("query_id", "compare_id")] <- 
+#                     c(rep(row_id, newpairs_n), sentences_compare_df$id)
 
                 comparison_pairs_urow <- comparison_pairs_urow + newpairs_n
             }    
@@ -216,7 +243,13 @@ myprint_df(comparison_pairs_df)
 
 #print(all.equal(comparison_pairs_df, 
 #                comparison_pairs_old_df))
+
+stm_diff <- proc.time() - stm
+script_time_df <- rbind(script_time_df, 
+                        data.frame(chunk="find_compare_pairs", 
+                                   elapsed=stm_diff["elapsed"]))
 ```
+
 
 #```{r compare_pairs, cache=TRUE, autodep=TRUE}
 ```{r compare_pairs}
@@ -308,8 +341,30 @@ if (!is.na(two_edit_distance_row$query_id)) {
     print(setdiff(union(query_words_lst, compare_words_lst), 
                   intersect(query_words_lst, compare_words_lst)))
 }
+
+print(sprintf("Script Summary:"))
+print(sprintf("Number of sentences read:%s", 
+              format(nrow(sentences_df), big.mark=',')))
+print(sprintf("Number of sentences identified for comparison:%s", 
+              format(nrow(comparison_pairs_df), big.mark=',')))
+print(sprintf("Comparison density: %0.4f", 
+              nrow(comparison_pairs_df) / (nrow(sentences_df) ^ 2)))
+print(sprintf("Number of sentence pairs within edit distance of 1: %s",
+              format(sum(comparison_pairs_df$edit_distance <= 1), big.mark=',')))
+
+stm_diff <- proc.time() - stm
+script_time_df <- rbind(script_time_df, 
+                        data.frame(chunk="compare_pairs", 
+                                   elapsed=stm_diff["elapsed"]))
 ```
 
 ```{r print_sessionInfo, echo=FALSE}
+rownames(script_time_df) <- seq(1, nrow(script_time_df))
+script_time_df$elapsed_diff <- sapply(seq(1, nrow(script_time_df)), 
+                                      function(step) ifelse(step <= 1, 0,
+        script_time_df[step, "elapsed"] - script_time_df[step - 1, "elapsed"]))
+print(script_time_df[order(script_time_df$elapsed_diff, decreasing=TRUE),])
+print(sprintf("Total Elapsed Time: %s secs", 
+              format(script_time_df[nrow(script_time_df), "elapsed"], big.mark=',')))
 sessionInfo()
 ```
