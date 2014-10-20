@@ -241,6 +241,15 @@ print(sprintf("Comparison density: %0.4f",
               nrow(comparison_pairs_df) / (nrow(sentences_df) ^ 2)))
 myprint_df(comparison_pairs_df)
 
+comparison_pairs_query_id_freq_df <- 
+    summaryBy(query_id ~ query_id, data=comparison_pairs_df, FUN=length)
+names(comparison_pairs_query_id_freq_df)[2] <- "freq"
+print(myplot_histogram(comparison_pairs_query_id_freq_df, "freq"))
+myprint_df(subset(comparison_pairs_df, 
+                  query_id == subset(comparison_pairs_query_id_freq_df, 
+                                freq == max(comparison_pairs_query_id_freq_df$freq))$query_id
+          ))
+
 #print(all.equal(comparison_pairs_df, 
 #                comparison_pairs_old_df))
 
@@ -262,16 +271,84 @@ for (row_pos in seq(1:nrow(sentences_df))) {
 }
 myprint_df(sntnc_pos_df)
 
-sentence_edit_distance <- function(words_lst1, words_lst2) {
+func_step_id_set <- c(  "1_unlist"
+                      , "2_union"
+                      , "3_intersection"
+                      , "4_distance"
+                     )
+func_df <- data.frame(func_step_id=func_step_id_set)
+
+sentence_edit_distance_old <- function(words_lst1, words_lst2) {
 #     words1 <- sort(unlist(words_lst1))
 #     words2 <- sort(unlist(words_lst2))
+    
+    ftm <- proc.time()
     words1 <- unlist(words_lst1)
     words2 <- unlist(words_lst2)
-    
-    distance <- length(union(words1, words2)) - length(intersect(words1, words2))
+    ftm_diff <- proc.time() - ftm; 
+    func_df[1, names(summary(ftm_diff))] <<- func_df[1, names(summary(ftm_diff))] + 
+        summary(ftm_diff)
+
+    ftm <- proc.time()
+    union12 <- union(words1, words2)
+    ftm_diff <- proc.time() - ftm; 
+    func_df[2, names(summary(ftm_diff))] <<- func_df[2, names(summary(ftm_diff))] + 
+        summary(ftm_diff)
+
+
+    ftm <- proc.time()    
+    intersect12 <- intersect(words1, words2)
+    ftm_diff <- proc.time() - ftm; 
+    func_df[3, names(summary(ftm_diff))] <<- func_df[3, names(summary(ftm_diff))] + 
+        summary(ftm_diff)
+
+    ftm <- proc.time()    
+    distance <- length(union12) - length(intersect12)
     # account for substitutions
     if ((distance == 2) & (length(words1) == length(words2)))
         distance <- 1
+    
+    ftm_diff <- proc.time() - ftm; 
+    func_df[4, names(summary(ftm_diff))] <<- func_df[4, names(summary(ftm_diff))] + 
+        summary(ftm_diff)
+
+    return(distance)
+}
+
+sentence_edit_distance <- function(words_lst1, words_lst2) {
+#     words1 <- sort(unlist(words_lst1))
+#     words2 <- sort(unlist(words_lst2))
+    
+    ftm <- proc.time()
+    words1 <- unlist(words_lst1)
+    words2 <- unlist(words_lst2)
+    ftm_diff <- proc.time() - ftm; 
+    func_df[1, names(summary(ftm_diff))] <<- func_df[1, names(summary(ftm_diff))] + 
+        summary(ftm_diff)
+
+    ftm <- proc.time()
+    union12 <- union(words1, words2)
+    ftm_diff <- proc.time() - ftm; 
+    func_df[2, names(summary(ftm_diff))] <<- func_df[2, names(summary(ftm_diff))] + 
+        summary(ftm_diff)
+
+
+    ftm <- proc.time()    
+    intersect12 <- intersect(words1, words2)
+    ftm_diff <- proc.time() - ftm; 
+    func_df[3, names(summary(ftm_diff))] <<- func_df[3, names(summary(ftm_diff))] + 
+        summary(ftm_diff)
+
+    ftm <- proc.time()    
+    distance <- length(union12) - length(intersect12)
+    # account for substitutions
+    if ((distance == 2) & (length(words1) == length(words2)))
+        distance <- 1
+    
+    ftm_diff <- proc.time() - ftm; 
+    func_df[4, names(summary(ftm_diff))] <<- func_df[4, names(summary(ftm_diff))] + 
+        summary(ftm_diff)
+
     return(distance)
 }
 
@@ -281,7 +358,7 @@ script_time_df <- rbind(script_time_df,
                                    elapsed=stm_diff["elapsed"]))
 ```
 
-#```{r compare_pairs_old, cache=TRUE, autodep=TRUE}
+```{r compare_pairs_old, cache=TRUE, autodep=TRUE}
 #```{r compare_pairs_old}
 loop_step_id_set <- c(  "1_comparison_pairs_df_access"
                       , "2_sentences_df_access"
@@ -291,11 +368,14 @@ loop_df <- data.frame(loop_step_id=loop_step_id_set)
 loop_df[, names(summary(proc.time()))] <- 
     rep(0, length(names(summary(proc.time()))) * nrow(loop_df)) 
 
-for (loop_step_id in loop_df$loop_step_id) {
-#for (loop_step_id in loop_df[nrow(loop_df), "loop_step_id"]) {   
+#for (loop_step_id in loop_df$loop_step_id) {
+for (loop_step_id in loop_df[nrow(loop_df), "loop_step_id"]) {   
     ptm <- proc.time()
     ptm_diff <- proc.time() - ptm
     
+    func_df[, names(summary(proc.time()))] <- 
+        rep(0, length(names(summary(proc.time()))) * nrow(func_df)) 
+
     for (row in seq(1, nrow(comparison_pairs_df))) {
         
         if (toString(loop_step_id) >= toString(loop_step_id_set[1])) {
@@ -304,15 +384,13 @@ for (loop_step_id in loop_df$loop_step_id) {
         }
                 
         if (toString(loop_step_id) >= toString(loop_step_id_set[2])) {
-#             row_words_lst1 <- sentences_df[sentences_df$id == row_id1, "words_lst"]
-#             row_words_lst2 <- sentences_df[sentences_df$id == row_id2, "words_lst"]
             row_words_lst1 <- sentences_df[sntnc_pos_df[row_id1, "pos"], "words_lst"]
             row_words_lst2 <- sentences_df[sntnc_pos_df[row_id2, "pos"], "words_lst"]
         }
         
         if (toString(loop_step_id) >= toString(loop_step_id_set[3])) {
             comparison_pairs_df[row, "edit_distance"] <- 
-                sentence_edit_distance(row_words_lst1, row_words_lst2)
+                sentence_edit_distance_old(row_words_lst1, row_words_lst2)
         }
     }
     
@@ -330,13 +408,22 @@ loop_df$user_diff <- sapply(seq(1, nrow(loop_df)),
                             loop_df[step, "user"] - loop_df[step - 1, "user"]))
 print(loop_df)
 
+# func_plot_df <- melt(func_df, id="func_step_id", 
+#                            measure=c("user", "system", "elapsed"))
+# p <- ggplot(data=func_plot_df, mapping=aes(x=func_step_id, y=value)) + 
+#         geom_line(aes(group=variable, color=variable)) 
+p <- ggplot(data=func_df, mapping=aes(x=func_step_id, y=elapsed)) + 
+        geom_bar(stat="identity") 
+print(p)
+print(func_df)
+
 comparison_pairs_old_df <- comparison_pairs_df
 
 stm_diff <- proc.time() - stm
 script_time_df <- rbind(script_time_df, 
                         data.frame(chunk="compare_pairs_old", 
                                    elapsed=stm_diff["elapsed"]))
-#```
+```
 
 ```{r compare_pairs, cache=TRUE, autodep=TRUE}
 #```{r compare_pairs}
@@ -353,6 +440,9 @@ for (loop_step_id in loop_df[nrow(loop_df), "loop_step_id"]) {
     ptm <- proc.time()
     ptm_diff <- proc.time() - ptm
     
+    func_df[, names(summary(proc.time()))] <- 
+        rep(0, length(names(summary(proc.time()))) * nrow(func_df)) 
+
     for (row in seq(1, nrow(comparison_pairs_df))) {
         
         if (toString(loop_step_id) >= toString(loop_step_id_set[1])) {
@@ -361,8 +451,6 @@ for (loop_step_id in loop_df[nrow(loop_df), "loop_step_id"]) {
         }
                 
         if (toString(loop_step_id) >= toString(loop_step_id_set[2])) {
-#             row_words_lst1 <- sentences_df[sentences_df$id == row_id1, "words_lst"]
-#             row_words_lst2 <- sentences_df[sentences_df$id == row_id2, "words_lst"]
             row_words_lst1 <- sentences_df[sntnc_pos_df[row_id1, "pos"], "words_lst"]
             row_words_lst2 <- sentences_df[sntnc_pos_df[row_id2, "pos"], "words_lst"]
         }
@@ -387,8 +475,17 @@ loop_df$user_diff <- sapply(seq(1, nrow(loop_df)),
                             loop_df[step, "user"] - loop_df[step - 1, "user"]))
 print(loop_df)
 
-# print(all.equal(comparison_pairs_df, 
-#                  comparison_pairs_old_df))
+# func_plot_df <- melt(func_df, id="func_step_id", 
+#                            measure=c("user", "system", "elapsed"))
+# p <- ggplot(data=func_plot_df, mapping=aes(x=func_step_id, y=value)) + 
+#         geom_line(aes(group=variable, color=variable)) 
+p <- ggplot(data=func_df, mapping=aes(x=func_step_id, y=elapsed)) + 
+        geom_bar(stat="identity") 
+print(p)
+print(func_df)
+
+print(all.equal(comparison_pairs_df, 
+                 comparison_pairs_old_df))
 
 stm_diff <- proc.time() - stm
 script_time_df <- rbind(script_time_df, 
@@ -397,6 +494,8 @@ script_time_df <- rbind(script_time_df,
 ```
 
 ```{r inspect_results, cache=TRUE, autodep=TRUE}
+print(myplot_histogram(comparison_pairs_df, "edit_distance"))
+
 zero_edit_distance_row <- 
     comparison_pairs_df[which(comparison_pairs_df$edit_distance == 
                               0)[1], ]
