@@ -67,6 +67,8 @@ sentences_df$word_2 <- sapply(sentences_df$words_lst,
                                    function (words_lst) unlist(words_lst)[2])
 sentences_df$word_3 <- sapply(sentences_df$words_lst, 
                                    function (words_lst) unlist(words_lst)[3])
+sentences_df$word_4 <- sapply(sentences_df$words_lst, 
+                                   function (words_lst) unlist(words_lst)[4])
 sentences_df$word_n <- sapply(sentences_df$words_lst, 
                                   function (words_lst) unlist(words_lst)[length(words_lst)])
 print(str(subset(sentences_df, select=-c(words_lst))))
@@ -128,7 +130,7 @@ This implies that for any query sentence, we need only compare that with sentenc
 ```{r find_compare_pairs_old}
 print(nrow(sentences_df))
 # Preallocate space for pairs that need to be compared 
-comparison_pairs_n_est <- (nrow(sentences_df) ^ 2) * 0.0010 * 1.05
+comparison_pairs_n_est <- (nrow(sentences_df) ^ 2) * 0.0005 * 1.05
 comparison_pairs_df <- data.frame(query_id=rep(-1, comparison_pairs_n_est),
                                   compare_id=rep(-1, comparison_pairs_n_est),
                                   is.common_query_word_1=rep(FALSE, 
@@ -159,6 +161,7 @@ for (loop_step_id in loop_df$loop_step_id[5:5]) {
             row_word_1 <- sentences_df[row_pos, "word_1"]
             row_word_2 <- sentences_df[row_pos, "word_2"]
             row_word_3 <- sentences_df[row_pos, "word_3"]
+            row_word_4 <- sentences_df[row_pos, "word_4"]
             row_word_n <- sentences_df[row_pos, "word_n"]
         }
         
@@ -192,12 +195,23 @@ for (loop_step_id in loop_df$loop_step_id[5:5]) {
                                 )
                                                      , c("id", "words_n")]
             } else {
+                if (!(row_word_2 %in% common_words)) {
                 sentences_compare_df <- sentences_chk_df[ 
                                 (((sentences_chk_df$word_1 == row_word_1) & 
                                   (sentences_chk_df$word_2 == row_word_2)) | 
                                  (sentences_chk_df$word_n == row_word_n)
                                 )
                                                      , c("id", "words_n")]
+                } else {
+                sentences_compare_df <- sentences_chk_df[ 
+                                (((sentences_chk_df$word_1 == row_word_1) & 
+                                  (sentences_chk_df$word_2 == row_word_2) &
+                                  (sentences_chk_df$word_3 == row_word_3)      
+                                 ) | 
+                                 (sentences_chk_df$word_n == row_word_n)
+                                )
+                                                     , c("id", "words_n")]                    
+                }
             }
         }
         
@@ -255,6 +269,7 @@ print(sprintf("Comparison density: %0.4f",
               nrow(comparison_pairs_df) / (nrow(sentences_df) ^ 2)))
 myprint_df(comparison_pairs_df)
 
+### check which query_id generates the most comparison pairs
 comparison_pairs_query_id_freq_df <- 
     summaryBy(query_id ~ query_id, data=comparison_pairs_df, FUN=length)
 names(comparison_pairs_query_id_freq_df)[2] <- "query_id_freq"
@@ -285,7 +300,8 @@ comparison_pairs_df <- data.frame(query_id=rep(-1, comparison_pairs_n_est),
                                   compare_id=rep(-1, comparison_pairs_n_est),
                                   is.common_query_word_1=rep(FALSE, 
                                                              comparison_pairs_n_est))
-common_words <- c("a", "i", "the", "this", "we")
+common_words <- c("a", "also", "he", "i", "in", "is", "the", "this", 
+                  "we", "well", "when", "with")
 
 loop_step_id_set <- c(  "1_Identified_Query"
                       , "2_Filtered_Length"
@@ -311,6 +327,7 @@ for (loop_step_id in loop_df$loop_step_id[5:5]) {
             row_word_1 <- sentences_df[row_pos, "word_1"]
             row_word_2 <- sentences_df[row_pos, "word_2"]
             row_word_3 <- sentences_df[row_pos, "word_3"]
+            row_word_4 <- sentences_df[row_pos, "word_4"]
             row_word_n <- sentences_df[row_pos, "word_n"]
         }
         
@@ -352,6 +369,7 @@ for (loop_step_id in loop_df$loop_step_id[5:5]) {
                                 )
                                                      , c("id", "words_n")]
                 } else {
+                    if (!(row_word_3 %in% common_words)) {    
                 sentences_compare_df <- sentences_chk_df[ 
                                 (((sentences_chk_df$word_1 == row_word_1) & 
                                   (sentences_chk_df$word_2 == row_word_2) &
@@ -359,7 +377,18 @@ for (loop_step_id in loop_df$loop_step_id[5:5]) {
                                  ) | 
                                  (sentences_chk_df$word_n == row_word_n)
                                 )
-                                                     , c("id", "words_n")]                    
+                                                     , c("id", "words_n")]
+                    } else {
+                sentences_compare_df <- sentences_chk_df[ 
+                                (((sentences_chk_df$word_1 == row_word_1) & 
+                                  (sentences_chk_df$word_2 == row_word_2) &
+                                  (sentences_chk_df$word_3 == row_word_3) &
+                                  (sentences_chk_df$word_4 == row_word_4)
+                                 ) | 
+                                 (sentences_chk_df$word_n == row_word_n)
+                                )
+                                                     , c("id", "words_n")]                        
+                    }
                 }
             }
         }
@@ -684,12 +713,16 @@ if (!is.na(two_edit_distance_row$query_id)) {
 
 print(myplot_histogram(comparison_pairs_df, "edit_distance"))
 ### check which pair generates the highest distance
-max_edit_distance_row <-     
-    comparison_pairs_df[which.max(comparison_pairs_df$edit_distance), ]
-print("max_distance:")
-print(max_edit_distance_row)
-print(sentences_df[sentences_df$id == max_edit_distance_row$query_id, "words_lst"])
-print(sentences_df[sentences_df$id == max_edit_distance_row$compare_id, "words_lst"])
+print("max edit_distance:")
+comparison_pairs_srtd_df <- orderBy(~ - edit_distance + query_id + compare_id, 
+                                    comparison_pairs_df)
+print(comparison_pairs_srtd_df[1, ])
+print(sentences_df[sentences_df$id == comparison_pairs_srtd_df$query_id[1], "words_lst"])
+print(sentences_df[sentences_df$id == comparison_pairs_srtd_df$compare_id[1], "words_lst"])
+print(comparison_pairs_srtd_df[2, ])
+print(sentences_df[sentences_df$id == comparison_pairs_srtd_df$query_id[2], "words_lst"])
+print(sentences_df[sentences_df$id == comparison_pairs_srtd_df$compare_id[2], "words_lst"])
+
 
 print(sprintf("Script Summary:"))
 print(sprintf("Number of sentences read: %s", 
