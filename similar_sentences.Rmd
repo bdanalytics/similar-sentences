@@ -72,7 +72,11 @@ sentences_df$word_3 <- sapply(sentences_df$words_lst,
                                    function (words_lst) unlist(words_lst)[3])
 sentences_df$word_4 <- sapply(sentences_df$words_lst, 
                                    function (words_lst) unlist(words_lst)[4])
+sentences_df$word_5 <- sapply(sentences_df$words_lst, 
+                                   function (words_lst) unlist(words_lst)[5])
 
+sentences_df$word_n_m4 <- sapply(sentences_df$words_lst, 
+                                  function (words_lst) unlist(words_lst)[length(words_lst)-4])
 sentences_df$word_n_m3 <- sapply(sentences_df$words_lst, 
                                   function (words_lst) unlist(words_lst)[length(words_lst)-3])
 sentences_df$word_n_m2 <- sapply(sentences_df$words_lst, 
@@ -146,21 +150,56 @@ comparison_pairs_df <- data.frame(query_id=rep(-1, comparison_pairs_n_est),
                                   is.common_query_word_1=rep(FALSE, 
                                                              comparison_pairs_n_est))
 common_words <- c("2007", "2008", 
-                "a", "after", "all", "also", "am", "and", "any", "are", "as", 
-                    "at", 
-                "back", "but", "by", "can", "customers",
-                "economy", "el", "en", "es", "future", "government",
-                "have", "he", "him", "his", "home", 
-                "i", "if", "im", "in", "is", "it", "its", "ive", 
-                "la", "last", "maybe", "more", "my",
-                "n", "no", "nu", "o", "oh", "on", "one", "our", 
-                "people", "plazo", "please", "por", "program", 
-                "se", "she", "so", "soil",
-                "tengo", "that", "the", "there", "these", "they", "think", "this", 
-                    "time", "to", "tried", "two",
-                "was", "way", "we", "well", "what", "when", "while", "with", 
-                    "world", 
-                "years", "yo", "you")
+                "a", "about", "after", "again", "ago", "agora", "alex", "all", "also", 
+                    "am", "american", "and",
+                    "any", "alaska", "alone", "anything", "are", "as", "at", 
+                    "australia", "australian",
+                "back", "be", "because", "been", "believe", "best", "bills", 
+                    "britney", "business", "but", "by", 
+                "campaign", "can", "china", "climate", "com", "companies", 
+                    "content", "country", 
+                    "crisis", "customers", 
+                "day", "did", "do", "done", "dont", "during",
+                "e", "economy", "el", "electoral", "en", "endeavor", "environment", 
+                    "es", "esta", 
+                    "eu", "even", "events", "every", "everybody", "everyone", 
+                    "experience",
+                "facilities", "families", "feel", "for", "from", "fuel", "fund",
+                    "future", 
+                "games", "government", "grandchildren", "guy", 
+                "had", "happens", "has", "have", "he", "hell", "helpful", "here",
+                    "hes",
+                    "hey", "him", "his", "home", "hope", "hopefully", "house", 
+                    "how", 
+                "i", "id", "if", "il", "im", "in", "industry", "into", "interests", 
+                    "is", "issues", "it", "its", "ive",
+                "just",
+                "kent", "know", 
+                "la", "las", "last", "law", "les", "life", "like", "lives", "lo",
+                    "looked", "looking", "love", 
+                "made", "man", "mas", "maybe", "me", "media", "members", "mine",
+                    "more", "mr", "my", "myself",
+                "n", "nation", "night", "no", "nos", "not", "now", "nu", 
+                "o", "of", "oh", "on", "one", "only", "opportunity", "our", 
+                    "out", "outcome", "own",
+                "para", "parece", "past", "people", "percent", "period", "place",
+                    "plazo", 
+                    "please", "politics", "por", "problem", "program", "public", 
+                "que", "results", "right", "run",
+                "s", "said", "saya", "se", "secure", "selecci", "serious", "service",
+                    "she", "shes", "should", "si", "side", "so", "soil", "son",
+                    "staff", "state", "story", "study", "stuff", 
+                "tengo", "that", "thats","the", "them", "themselves", "then", 
+                    "there", "theres", 
+                    "these", "they", "theyre", "thing", "think", "this", "though", 
+                    "time", "times", "tinha", "to", "today", "treatment", "tried",
+                    "two",
+                "un", "under", "unless", "up", "us",
+                "very",
+                "want", "was", "way", "we", "week", "weeks", "well", "were", "weve", 
+                    "what", "when", "while", "white", "will", "with", "work", "working", 
+                    "world", "words", "would", "wrong", 
+                "year", "years", "yo", "you", "youre")
 
 get_compare_targets <- function (query_sentence_df, sentences_chk_df) {
     row_word_1      <- query_sentence_df$word_1
@@ -168,6 +207,7 @@ get_compare_targets <- function (query_sentence_df, sentences_chk_df) {
     row_word_3      <- query_sentence_df$word_3
     row_word_4      <- query_sentence_df$word_4
     
+    row_word_n_m3   <- query_sentence_df$word_n_m3
     row_word_n_m2   <- query_sentence_df$word_n_m2
     row_word_n_m1   <- query_sentence_df$word_n_m1
     row_word_n      <- query_sentence_df$word_n
@@ -205,10 +245,16 @@ get_compare_targets <- function (query_sentence_df, sentences_chk_df) {
                                ((sentences_chk_df$word_n == row_word_n) & 
                                 (sentences_chk_df$word_n_m1 == row_word_n_m1))
                         } else {
+                        if (!(row_word_n_m2 %in% common_words)) {                            
                                ((sentences_chk_df$word_n == row_word_n) & 
                                 (sentences_chk_df$word_n_m1 == row_word_n_m1) &
                                 (sentences_chk_df$word_n_m2 == row_word_n_m2))
-                        }}    
+                        } else {                    
+                               ((sentences_chk_df$word_n == row_word_n) & 
+                                (sentences_chk_df$word_n_m1 == row_word_n_m1) &
+                                (sentences_chk_df$word_n_m2 == row_word_n_m2) &
+                                (sentences_chk_df$word_n_m3 == row_word_n_m3))                            
+                        }}}    
                     )    
                 )             
                         , c("id", "words_n")]
@@ -282,14 +328,6 @@ for (loop_step_id in loop_df$loop_step_id[5:5]) {
                    rep(ifelse(row_word_1 %in% common_words,
                               TRUE, FALSE), newpairs_n)
                
-
-                # this approach takes longer probably due to the collecting on
-                #   the rhs
-#                 comparison_pairs_df[(comparison_pairs_urow + 1):
-#                                     (comparison_pairs_urow + newpairs_n),
-#                                     c("query_id", "compare_id")] <- 
-#                     c(rep(row_id, newpairs_n), sentences_compare_df$id)
-
                 comparison_pairs_urow <- comparison_pairs_urow + newpairs_n
             }    
         }
@@ -354,61 +392,78 @@ comparison_pairs_df <- data.frame(query_id=rep(-1, comparison_pairs_n_est),
 common_words <- c("2007", "2008", 
                 "a", "about", "after", "again", "ago", "agora", "alex", "all", "also", 
                     "am", "american", "and",
-                    "any", "alaska", "alone", "anything", "are", "as", "at", 
-                    "australia", "australian",
-                "back", "be", "because", "been", "believe", "best", "bills", 
-                    "britney", "business", "but", "by", 
-                "campaign", "can", "china", "climate", "com", "companies", 
-                    "content", "country", 
+                    "any", "alaska", "alone", "americans", "anything", "are", 
+                    "as", "at", 
+                    "australia", "australian", "away",
+                "back", "be", "because", "been", "believe", "best", "bill", "bills", 
+                    "blog", "both", "britney", "business", "but", "by", 
+                "campaign", "can", "change", "children", "china", "choice", "climate", 
+                    "cold", "com", "commitment", "companies", 
+                    "company", "con", "content", "country", 
                     "crisis", "customers", 
-                "day", "did", "do", "done", "dont", "during",
+                "date", "day", "days", "did", "didnt", "disappointed", "do", "done", 
+                    "dont", "during",
                 "e", "economy", "el", "electoral", "en", "endeavor", "environment", 
-                    "es", "esta", 
+                    "equal", "es", "esta", 
                     "eu", "even", "events", "every", "everybody", "everyone", 
                     "experience",
-                "facilities", "families", "feel", "for", "from", "fuel", "fund",
-                    "future", 
-                "games", "government", "grandchildren", "guy", 
-                "had", "happens", "has", "have", "he", "hell", "helpful", "here",
+                "facilities", "families", "feel", "first", "fit", "for", 
+                    "formula", "from", 
+                    "fuel", "fund", "future", 
+                "games", "gas", "good", "got", "government", "grandchildren", "guy", 
+                "had", "happens", "has", "have", "he", "heart", "hell", 
+                    "helpful", "here",
                     "hes",
-                    "hey", "him", "his", "home", "hope", "hopefully", "house", 
+                    "hey", "him", "his", "history", "home", "hope", "hopefully",
+                    "house", 
                     "how", 
-                "i", "id", "if", "il", "im", "in", "industry", "into", "interests", 
-                    "is", "issues", "it", "its", "ive",
+                "i", "id", "if", "il", "im", "in", "industry", "infection", "into",
+                    "interests", "iraq", 
+                    "is", "issue", "issues", "it", "its", "ive",
                 "just",
                 "kent", "know", 
                 "la", "las", "last", "law", "les", "life", "like", "lives", "lo",
                     "looked", "looking", "love", 
-                "made", "man", "mas", "maybe", "me", "media", "members", "mine",
-                    "more", "mr", "my", "myself",
-                "n", "nation", "no", "not", "now", "nu", 
-                "o", "of", "oh", "on", "one", "only", "opportunity", "our", 
-                    "out", "outcome", "own",
+                "made", "man", "many", "market", "mas", "maybe", "me", "media",
+                    "members",
+                    "mine",
+                    "more", "most", "mr", "my", "myself",
+                "n", "nation", "need", "never", "next", "night", "no", "nos", 
+                    "not", "now", "nu", 
+                "o", "obama", "of", "oh", "on", "one", "only", "opportunity", "our", 
+                    "out", "outcome", "overall", "own",
                 "para", "parece", "past", "people", "percent", "period", "place",
                     "plazo", 
-                    "please", "por", "problem", "program", "public", 
+                    "please", "policy", "politics", "por", "position", "problem",
+                    "process", 
+                    "program",
+                    "public", 
                 "que", "results", "right", "run",
                 "s", "said", "saya", "se", "secure", "selecci", "serious", "service",
                     "she", "shes", "should", "si", "side", "so", "soil", "son",
-                    "staff", "state", "story", "study", "stuff", 
-                "tengo", "that", "thats","the", "them", "themselves", "then", 
+                    "staff", "state", "stop", "story", "study", "stuff", 
+                "tengo", "that", "thats", "the", "them", "themselves", "then", 
                     "there", "theres", 
                     "these", "they", "theyre", "thing", "think", "this", "though", 
                     "time", "times", "tinha", "to", "today", "treatment", "tried",
                     "two",
                 "un", "under", "unless", "up", "us",
                 "very",
-                "want", "was", "way", "we", "week", "weeks", "well", "were", "weve", 
-                    "what", "when", "while", "white", "will", "with", "work", "working", 
+                "want", "war", "was", "way", "we", "week", "weeks", "well", 
+                    "were", "weve", 
+                    "what", "when", "whenever", "while", "white", "will", "with",
+                    "work", "working", 
                     "world", "words", "would", "wrong", 
-                "year", "years", "yo", "you", "youre")
+                "year", "years", "yet", "yo", "you", "youre")
 
 get_compare_targets <- function (query_sentence_df, sentences_chk_df) {
     row_word_1      <- query_sentence_df$word_1
     row_word_2      <- query_sentence_df$word_2
     row_word_3      <- query_sentence_df$word_3
     row_word_4      <- query_sentence_df$word_4
-    
+    row_word_5      <- query_sentence_df$word_5    
+
+    row_word_n_m4   <- query_sentence_df$word_n_m4
     row_word_n_m3   <- query_sentence_df$word_n_m3
     row_word_n_m2   <- query_sentence_df$word_n_m2
     row_word_n_m1   <- query_sentence_df$word_n_m1
@@ -430,12 +485,19 @@ get_compare_targets <- function (query_sentence_df, sentences_chk_df) {
                                ((sentences_chk_df$word_1 == row_word_1) & 
                                 (sentences_chk_df$word_2 == row_word_2) &
                                 (sentences_chk_df$word_3 == row_word_3))
-                        } else {       
+                        } else {
+                        if (!(row_word_4 %in% common_words)) {                             
                                ((sentences_chk_df$word_1 == row_word_1) & 
                                 (sentences_chk_df$word_2 == row_word_2) &
                                 (sentences_chk_df$word_3 == row_word_3) &
                                 (sentences_chk_df$word_4 == row_word_4))
-                        }}}
+                        } else {                    
+                               ((sentences_chk_df$word_1 == row_word_1) & 
+                                (sentences_chk_df$word_2 == row_word_2) &
+                                (sentences_chk_df$word_3 == row_word_3) &
+                                (sentences_chk_df$word_4 == row_word_4) &
+                                (sentences_chk_df$word_5 == row_word_5))                            
+                        }}}}
                     )
                     |
                     # is.same_suffix
@@ -451,12 +513,19 @@ get_compare_targets <- function (query_sentence_df, sentences_chk_df) {
                                ((sentences_chk_df$word_n == row_word_n) & 
                                 (sentences_chk_df$word_n_m1 == row_word_n_m1) &
                                 (sentences_chk_df$word_n_m2 == row_word_n_m2))
-                        } else {                    
+                        } else {                
+                        if (!(row_word_n_m3 %in% common_words)) {                            
                                ((sentences_chk_df$word_n == row_word_n) & 
                                 (sentences_chk_df$word_n_m1 == row_word_n_m1) &
                                 (sentences_chk_df$word_n_m2 == row_word_n_m2) &
-                                (sentences_chk_df$word_n_m3 == row_word_n_m3))                            
-                        }}}    
+                                (sentences_chk_df$word_n_m3 == row_word_n_m3))
+                        } else {
+                               ((sentences_chk_df$word_n == row_word_n) & 
+                                (sentences_chk_df$word_n_m1 == row_word_n_m1) &
+                                (sentences_chk_df$word_n_m2 == row_word_n_m2) &
+                                (sentences_chk_df$word_n_m3 == row_word_n_m3) &
+                                (sentences_chk_df$word_n_m4 == row_word_n_m4))
+                        }}}}    
                     )    
                 )             
                         , c("id", "words_n")]
