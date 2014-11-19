@@ -73,6 +73,8 @@ sentences_df$word_3 <- sapply(sentences_df$words_lst,
 sentences_df$word_4 <- sapply(sentences_df$words_lst, 
                                    function (words_lst) unlist(words_lst)[4])
 
+sentences_df$word_n_m2 <- sapply(sentences_df$words_lst, 
+                                  function (words_lst) unlist(words_lst)[length(words_lst)-2])
 sentences_df$word_n_m1 <- sapply(sentences_df$words_lst, 
                                   function (words_lst) unlist(words_lst)[length(words_lst)-1])
 sentences_df$word_n <- sapply(sentences_df$words_lst, 
@@ -141,8 +143,21 @@ comparison_pairs_df <- data.frame(query_id=rep(-1, comparison_pairs_n_est),
                                   compare_id=rep(-1, comparison_pairs_n_est),
                                   is.common_query_word_1=rep(FALSE, 
                                                              comparison_pairs_n_est))
-common_words <- c("a", "also", "he", "i", "in", "is", "the", "this", 
-                  "we", "well", "when", "with")
+common_words <- c("2007", "2008", 
+                "a", "after", "all", "also", "am", "and", "any", "are", "as", 
+                    "at", 
+                "back", "but", "by", "can", "customers",
+                "economy", "el", "es", "future", "government",
+                "have", "he", "him", "his", "home", 
+                "i", "if", "im", "in", "is", "it", "its", 
+                "la", "maybe", "more", "my",
+                "n", "no", "nu", "o", "oh", "one", "our", 
+                "people", "plazo", "please", "por", "program", "se", "she", "so",
+                "tengo", "that", "the", "there", "they", "think", "this", 
+                    "time", "to", "tried", "two",
+                "was", "way", "we", "well", "what", "when", "while", "with", 
+                    "world", 
+                "years", "yo", "you")
 
 get_compare_targets <- function (query_sentence_df, sentences_chk_df) {
     row_word_1      <- query_sentence_df$word_1
@@ -155,9 +170,9 @@ get_compare_targets <- function (query_sentence_df, sentences_chk_df) {
 
     targets_df <- sentences_chk_df[
                         #are.targets_condition
+                (
+                    # is.same_prefix
                     (
-                        # is.same_prefix
-                        (
                         if (!(row_word_1 %in% common_words)) { 
                                 (sentences_chk_df$word_1 == row_word_1) 
                         } else {       
@@ -175,40 +190,21 @@ get_compare_targets <- function (query_sentence_df, sentences_chk_df) {
                                 (sentences_chk_df$word_3 == row_word_3) &
                                 (sentences_chk_df$word_4 == row_word_4))
                         }}}
-                        )
-                        |
-                        # is.same_suffix     
-                        (sentences_chk_df$word_n == row_word_n)
-                    )             
+                    )
+                    |
+                    # is.same_suffix
+                    (   
+                        if (!(row_word_n %in% common_words)) { 
+                                (sentences_chk_df$word_n == row_word_n) 
+                        } else {       
+                               ((sentences_chk_df$word_n == row_word_n) & 
+                                (sentences_chk_df$word_n_m1 == row_word_n_m1))
+                        }
+                    )    
+                )             
                         , c("id", "words_n")]
     return(targets_df)
 }
-
-#                 sentences_chk_df[
-#                         #are.targets_condition
-#                     (
-#                         # is.same_prefix
-#                         FALSE
-#                         |
-#                         # is.same_suffix     
-#                         (sentences_chk_df$word_n == row_word_n)
-#                     )             
-#                         , c("id", "words_n")]
-
-#                 sentences_chk_df[
-#                         #are.targets_condition
-#                         (
-#                         # is.same_prefix   
-#                         (if(!(row_word_1 %in% common_words)) {
-#                                 (sentences_chk_df$word_1 == row_word_1)
-#                          } else { NULL } )  
-#                         |
-# #                         FALSE
-#                         # is.same_suffix     
-#                         (sentences_chk_df$word_n == row_word_n)
-#                         )             
-#                         , c("id", "words_n")]
-
 
 loop_step_id_set <- c(  "1_Identified_Query"
                       , "2_Filtered_Length"
@@ -230,7 +226,7 @@ for (loop_step_id in loop_df$loop_step_id[5:5]) {
         
         if (toString(loop_step_id) >= toString(loop_step_id_set[1])) {
             row_words_n <- sentences_df[row_pos, "words_n"]
-            row_word_1 <- sentences_df[row_pos, "word_1"]
+            row_word_1 <- sentences_df[row_pos, "word_1"]            
             row_id <- sentences_df[row_pos, "id"]
         }
         
@@ -350,13 +346,14 @@ common_words <- c("2007", "2008",
                 "a", "after", "all", "also", "am", "and", "any", "are", "as", 
                     "at", 
                 "back", "but", "by", "can", "customers",
-                "economy", "el", "es", "future", "government",
+                "economy", "el", "en", "es", "future", "government",
                 "have", "he", "him", "his", "home", 
-                "i", "if", "im", "in", "is", "it", "its", 
-                "la", "maybe", "more", "my",
-                "n", "no", "nu", "o", "oh", "one", "our", 
-                "people", "plazo", "please", "por", "program", "se", "she", "so",
-                "tengo", "that", "the", "there", "they", "think", "this", 
+                "i", "if", "im", "in", "is", "it", "its", "ive", 
+                "la", "last", "maybe", "more", "my",
+                "n", "no", "nu", "o", "oh", "on", "one", "our", 
+                "people", "plazo", "please", "por", "program", 
+                "se", "she", "so", "soil",
+                "tengo", "that", "the", "there", "these", "they", "think", "this", 
                     "time", "to", "tried", "two",
                 "was", "way", "we", "well", "what", "when", "while", "with", 
                     "world", 
@@ -368,6 +365,7 @@ get_compare_targets <- function (query_sentence_df, sentences_chk_df) {
     row_word_3      <- query_sentence_df$word_3
     row_word_4      <- query_sentence_df$word_4
     
+    row_word_n_m2   <- query_sentence_df$word_n_m2
     row_word_n_m1   <- query_sentence_df$word_n_m1
     row_word_n      <- query_sentence_df$word_n
 
@@ -399,10 +397,15 @@ get_compare_targets <- function (query_sentence_df, sentences_chk_df) {
                     (   
                         if (!(row_word_n %in% common_words)) { 
                                 (sentences_chk_df$word_n == row_word_n) 
-                        } else {       
+                        } else {
+                        if (!(row_word_n_m1 %in% common_words)) {    
                                ((sentences_chk_df$word_n == row_word_n) & 
                                 (sentences_chk_df$word_n_m1 == row_word_n_m1))
-                        }
+                        } else {
+                               ((sentences_chk_df$word_n == row_word_n) & 
+                                (sentences_chk_df$word_n_m1 == row_word_n_m1) &
+                                (sentences_chk_df$word_n_m2 == row_word_n_m2))
+                        }}    
                     )    
                 )             
                         , c("id", "words_n")]
