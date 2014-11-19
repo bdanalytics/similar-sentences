@@ -15,6 +15,9 @@ Time period:
 
 Potential next steps include:
 
+0. 8451       7346 - sentence_ids; Add n_m2 comparison
+1. Id word_1 & word_n that is freq present in edit_distance > 1
+
 ```{r initialize_script}
 rm(list=ls())
 suppressPackageStartupMessages(require(knitr))
@@ -41,7 +44,7 @@ script_time_df <- data.frame(chunk="initialize_script", elapsed=stm_diff["elapse
 ```{r import_data, cache=TRUE}
 sentences_df <- myimport_data(
     "https://d396qusza40orc.cloudfront.net/mmds/datasets/sentences.txt.zip", 
-    "sentences.txt", nrows=5000, stringsAsFactors=FALSE)
+    "sentences.txt", nrows=10000, stringsAsFactors=FALSE)
 names(sentences_df) <- "raw"
 
 stm_diff <- proc.time() - stm
@@ -343,11 +346,21 @@ comparison_pairs_df <- data.frame(query_id=rep(-1, comparison_pairs_n_est),
                                   compare_id=rep(-1, comparison_pairs_n_est),
                                   is.common_query_word_1=rep(FALSE, 
                                                              comparison_pairs_n_est))
-common_words <- c("a", "also", "and", "he", "i", "if", "in", "is", "it", "its", 
-                  "la", 
-                  "n", "no", 
-                  "that", "the", "there", "this", 
-                  "we", "well", "when", "with")
+common_words <- c("2007", "2008", 
+                "a", "after", "all", "also", "am", "and", "any", "are", "as", 
+                    "at", 
+                "back", "but", "by", "can", "customers",
+                "economy", "el", "es", "future", "government",
+                "have", "he", "him", "his", "home", 
+                "i", "if", "im", "in", "is", "it", "its", 
+                "la", "maybe", "more", "my",
+                "n", "no", "nu", "o", "oh", "one", "our", 
+                "people", "plazo", "please", "por", "program", "se", "she", "so",
+                "tengo", "that", "the", "there", "they", "think", "this", 
+                    "time", "to", "tried", "two",
+                "was", "way", "we", "well", "what", "when", "while", "with", 
+                    "world", 
+                "years", "yo", "you")
 
 get_compare_targets <- function (query_sentence_df, sentences_chk_df) {
     row_word_1      <- query_sentence_df$word_1
@@ -791,26 +804,19 @@ if (!is.na(two_edit_distance_row$query_id)) {
                   intersect(query_words_lst, compare_words_lst)))
 }
 
-print(myplot_histogram(comparison_pairs_df, "edit_distance"))
+print(myplot_histogram(subset(comparison_pairs_df, edit_distance > 1), 
+                       "edit_distance"))
 ### check which pair generates the highest distance
 print("max edit_distance:")
 comparison_pairs_srtd_df <- orderBy(~ - edit_distance + query_id + compare_id, 
                                     comparison_pairs_df)
-print(comparison_pairs_srtd_df[1, ])
-print(sentences_df[sentences_df$id == comparison_pairs_srtd_df$query_id[1], "words_lst"])
-print(sentences_df[sentences_df$id == comparison_pairs_srtd_df$compare_id[1], "words_lst"])
-print(comparison_pairs_srtd_df[2, ])
-print(sentences_df[sentences_df$id == comparison_pairs_srtd_df$query_id[2], "words_lst"])
-print(sentences_df[sentences_df$id == comparison_pairs_srtd_df$compare_id[2], "words_lst"])
-print(comparison_pairs_srtd_df[3, ])
-print(sentences_df[sentences_df$id == comparison_pairs_srtd_df$query_id[3], "words_lst"])
-print(sentences_df[sentences_df$id == comparison_pairs_srtd_df$compare_id[3], "words_lst"])
-print(comparison_pairs_srtd_df[4, ])
-print(sentences_df[sentences_df$id == comparison_pairs_srtd_df$query_id[4], "words_lst"])
-print(sentences_df[sentences_df$id == comparison_pairs_srtd_df$compare_id[4], "words_lst"])
-print(comparison_pairs_srtd_df[5, ])
-print(sentences_df[sentences_df$id == comparison_pairs_srtd_df$query_id[5], "words_lst"])
-print(sentences_df[sentences_df$id == comparison_pairs_srtd_df$compare_id[5], "words_lst"])
+for (row in 1:10) {
+    print(comparison_pairs_srtd_df[row, ])
+    print(sentences_df[sentences_df$id == comparison_pairs_srtd_df$query_id[row],
+                       "words_lst"])
+    print(sentences_df[sentences_df$id == comparison_pairs_srtd_df$compare_id[row],
+                       "words_lst"])
+}
 
 print(sprintf("Script Summary:"))
 print(sprintf("Number of sentences read: %s", 
