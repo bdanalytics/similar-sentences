@@ -15,7 +15,6 @@ Time period:
 
 Potential next steps include:
 
-0. 8451       7346 - sentence_ids; Add n_m2 comparison
 1. Id word_1 & word_n that is freq present in edit_distance > 1
 
 ```{r initialize_script}
@@ -44,7 +43,7 @@ script_time_df <- data.frame(chunk="initialize_script", elapsed=stm_diff["elapse
 ```{r import_data, cache=TRUE}
 sentences_df <- myimport_data(
     "https://d396qusza40orc.cloudfront.net/mmds/datasets/sentences.txt.zip", 
-    "sentences.txt", nrows=10000, stringsAsFactors=FALSE)
+    "sentences.txt", nrows=20000, stringsAsFactors=FALSE)
 names(sentences_df) <- "raw"
 
 stm_diff <- proc.time() - stm
@@ -138,320 +137,113 @@ script_time_df <- rbind(script_time_df,
                         data.frame(chunk="hash_words_n", elapsed=stm_diff["elapsed"]))
 ```
 
-Find potential pairs with edit distance at most 1 to be compared. 
-This implies that for any query sentence, we need only compare that with sentences that have +/- 1 words length 
-#```{r find_compare_pairs_old, cache=TRUE, autodep=TRUE}
-```{r find_compare_pairs_old}
-print(nrow(sentences_df))
-# Preallocate space for pairs that need to be compared 
-comparison_pairs_n_est <- (nrow(sentences_df) ^ 2) * 0.0005 * 1.05
-comparison_pairs_df <- data.frame(query_id=rep(-1, comparison_pairs_n_est),
-                                  compare_id=rep(-1, comparison_pairs_n_est),
-                                  is.common_query_word_1=rep(FALSE, 
-                                                             comparison_pairs_n_est))
-common_words <- c("2007", "2008", 
-                "a", "about", "after", "again", "ago", "agora", "alex", "all", "also", 
-                    "am", "american", "and",
-                    "any", "alaska", "alone", "anything", "are", "as", "at", 
-                    "australia", "australian",
-                "back", "be", "because", "been", "believe", "best", "bills", 
-                    "britney", "business", "but", "by", 
-                "campaign", "can", "china", "climate", "com", "companies", 
-                    "content", "country", 
-                    "crisis", "customers", 
-                "day", "did", "do", "done", "dont", "during",
-                "e", "economy", "el", "electoral", "en", "endeavor", "environment", 
-                    "es", "esta", 
-                    "eu", "even", "events", "every", "everybody", "everyone", 
-                    "experience",
-                "facilities", "families", "feel", "for", "from", "fuel", "fund",
-                    "future", 
-                "games", "government", "grandchildren", "guy", 
-                "had", "happens", "has", "have", "he", "hell", "helpful", "here",
-                    "hes",
-                    "hey", "him", "his", "home", "hope", "hopefully", "house", 
-                    "how", 
-                "i", "id", "if", "il", "im", "in", "industry", "into", "interests", 
-                    "is", "issues", "it", "its", "ive",
-                "just",
-                "kent", "know", 
-                "la", "las", "last", "law", "les", "life", "like", "lives", "lo",
-                    "looked", "looking", "love", 
-                "made", "man", "mas", "maybe", "me", "media", "members", "mine",
-                    "more", "mr", "my", "myself",
-                "n", "nation", "night", "no", "nos", "not", "now", "nu", 
-                "o", "of", "oh", "on", "one", "only", "opportunity", "our", 
-                    "out", "outcome", "own",
-                "para", "parece", "past", "people", "percent", "period", "place",
-                    "plazo", 
-                    "please", "politics", "por", "problem", "program", "public", 
-                "que", "results", "right", "run",
-                "s", "said", "saya", "se", "secure", "selecci", "serious", "service",
-                    "she", "shes", "should", "si", "side", "so", "soil", "son",
-                    "staff", "state", "story", "study", "stuff", 
-                "tengo", "that", "thats","the", "them", "themselves", "then", 
-                    "there", "theres", 
-                    "these", "they", "theyre", "thing", "think", "this", "though", 
-                    "time", "times", "tinha", "to", "today", "treatment", "tried",
-                    "two",
-                "un", "under", "unless", "up", "us",
-                "very",
-                "want", "was", "way", "we", "week", "weeks", "well", "were", "weve", 
-                    "what", "when", "while", "white", "will", "with", "work", "working", 
-                    "world", "words", "would", "wrong", 
-                "year", "years", "yo", "you", "youre")
-
-get_compare_targets <- function (query_sentence_df, sentences_chk_df) {
-    row_word_1      <- query_sentence_df$word_1
-    row_word_2      <- query_sentence_df$word_2
-    row_word_3      <- query_sentence_df$word_3
-    row_word_4      <- query_sentence_df$word_4
-    
-    row_word_n_m3   <- query_sentence_df$word_n_m3
-    row_word_n_m2   <- query_sentence_df$word_n_m2
-    row_word_n_m1   <- query_sentence_df$word_n_m1
-    row_word_n      <- query_sentence_df$word_n
-
-    targets_df <- sentences_chk_df[
-                        #are.targets_condition
-                (
-                    # is.same_prefix
-                    (
-                        if (!(row_word_1 %in% common_words)) { 
-                                (sentences_chk_df$word_1 == row_word_1) 
-                        } else {       
-                        if (!(row_word_2 %in% common_words)) { 
-                               ((sentences_chk_df$word_1 == row_word_1) & 
-                                (sentences_chk_df$word_2 == row_word_2))
-                        } else {       
-                        if (!(row_word_3 %in% common_words)) { 
-                               ((sentences_chk_df$word_1 == row_word_1) & 
-                                (sentences_chk_df$word_2 == row_word_2) &
-                                (sentences_chk_df$word_3 == row_word_3))
-                        } else {       
-                               ((sentences_chk_df$word_1 == row_word_1) & 
-                                (sentences_chk_df$word_2 == row_word_2) &
-                                (sentences_chk_df$word_3 == row_word_3) &
-                                (sentences_chk_df$word_4 == row_word_4))
-                        }}}
-                    )
-                    |
-                    # is.same_suffix
-                    (   
-                        if (!(row_word_n %in% common_words)) { 
-                                (sentences_chk_df$word_n == row_word_n) 
-                        } else {
-                        if (!(row_word_n_m1 %in% common_words)) {    
-                               ((sentences_chk_df$word_n == row_word_n) & 
-                                (sentences_chk_df$word_n_m1 == row_word_n_m1))
-                        } else {
-                        if (!(row_word_n_m2 %in% common_words)) {                            
-                               ((sentences_chk_df$word_n == row_word_n) & 
-                                (sentences_chk_df$word_n_m1 == row_word_n_m1) &
-                                (sentences_chk_df$word_n_m2 == row_word_n_m2))
-                        } else {                    
-                               ((sentences_chk_df$word_n == row_word_n) & 
-                                (sentences_chk_df$word_n_m1 == row_word_n_m1) &
-                                (sentences_chk_df$word_n_m2 == row_word_n_m2) &
-                                (sentences_chk_df$word_n_m3 == row_word_n_m3))                            
-                        }}}    
-                    )    
-                )             
-                        , c("id", "words_n")]
-    return(targets_df)
-}
-
-loop_step_id_set <- c(  "1_Identified_Query"
-                      , "2_Filtered_Length"
-                      , "3_Filtered_Dups"
-                      , "4_Filtered_FirstLast"
-                      , "5_Appended_DFrame"
-                     )
-loop_df <- data.frame(loop_step_id=loop_step_id_set)
-loop_df[, names(summary(proc.time()))] <- 
-    rep(0, length(names(summary(proc.time()))) * nrow(loop_df)) 
-
-#for (loop_step_id in loop_df$loop_step_id) {
-for (loop_step_id in loop_df$loop_step_id[5:5]) {   
-    ltm <- proc.time()
-    ltm_diff <- proc.time() - ltm
-
-    comparison_pairs_urow <- 0
-    for (row_pos in seq(1:nrow(sentences_df))) {    
-        
-        if (toString(loop_step_id) >= toString(loop_step_id_set[1])) {
-            row_words_n <- sentences_df[row_pos, "words_n"]
-            row_word_1 <- sentences_df[row_pos, "word_1"]            
-            row_id <- sentences_df[row_pos, "id"]
-        }
-        
-        if (toString(loop_step_id) >= toString(loop_step_id_set[2])) {
-            sntnc_lengths_row_pos <- 
-                which(sntnc_lengths_df$words_n == row_words_n)
-            
-            if (sntnc_lengths_row_pos != 1) { 
-                pos_beg <- sntnc_lengths_df[sntnc_lengths_row_pos - 1, "pos_beg"]
-            } else pos_beg <- 1
-            
-            if (sntnc_lengths_row_pos != nrow(sntnc_lengths_df)) {
-                pos_end <- sntnc_lengths_df[sntnc_lengths_row_pos + 1, "pos_end"]
-            } else pos_end <- nrow(sentences_df)
-                
-            sentences_chk_df <- sentences_df[pos_beg:pos_end ,] 
-        }
-        
-        if (toString(loop_step_id) >= toString(loop_step_id_set[3])) {        
-            sentences_chk_df <- subset(sentences_chk_df,
-                                       (sentences_chk_df$id != row_id) &
-                                       (sentences_chk_df$id < row_id) # to avoid dups       
-                                      )
-        }
-        
-        if (toString(loop_step_id) >= toString(loop_step_id_set[4])) {
-            sentences_compare_df <- get_compare_targets(sentences_df[row_pos, ], 
-                                                        sentences_chk_df)                
-        }
-        
-        if (toString(loop_step_id) >= toString(loop_step_id_set[5])) { 
-            newpairs_n <- nrow(sentences_compare_df)
-            if (newpairs_n > 0) {            
-               comparison_pairs_df[(comparison_pairs_urow + 1):
-                                   (comparison_pairs_urow + newpairs_n),
-                                   "query_id"] <- 
-                   rep(row_id, newpairs_n)
-               comparison_pairs_df[(comparison_pairs_urow + 1):
-                                   (comparison_pairs_urow + newpairs_n),
-                                   "compare_id"] <- sentences_compare_df$id
-               comparison_pairs_df[(comparison_pairs_urow + 1):
-                                   (comparison_pairs_urow + newpairs_n),
-                                   "is.common_query_word_1"] <- 
-                   rep(ifelse(row_word_1 %in% common_words,
-                              TRUE, FALSE), newpairs_n)
-               
-                comparison_pairs_urow <- comparison_pairs_urow + newpairs_n
-            }    
-        }
-    }
-    comparison_pairs_df <- subset(comparison_pairs_df, query_id > -1)
-    ltm_diff <- proc.time() - ltm
-    loop_df[loop_df$loop_step_id == loop_step_id, 
-                       names(summary(ltm_diff))] <- summary(ltm_diff)
-}
-comparison_pairs_df <- subset(comparison_pairs_df, query_id > -1)
-comparison_pairs_df <- orderBy(~ query_id + compare_id, 
-                               data=comparison_pairs_df)
-
-loop_steps_plot_df <- melt(loop_df, id="loop_step_id", 
-                           measure=c("user", "system", "elapsed"))
-p <- ggplot(data=loop_steps_plot_df, mapping=aes(x=loop_step_id, y=value)) + 
-        geom_line(aes(group=variable, color=variable)) 
-print(p)
-
-loop_df$user_diff <- sapply(seq(1, nrow(loop_df)), 
-                            function(step) ifelse(step <= 1, NA,
-                            loop_df[step, "user"] - loop_df[step - 1, "user"]))
-print(loop_df)
-
-print(sprintf("Pairs to be checked: %s", 
-              format(nrow(comparison_pairs_df), big.mark=',')))
-print(sprintf("Comparison density: %0.4f", 
-              nrow(comparison_pairs_df) / (nrow(sentences_df) ^ 2)))
-myprint_df(comparison_pairs_df)
-
-### check which query_id generates the most comparison pairs
-comparison_pairs_query_id_freq_df <- 
-    summaryBy(query_id ~ query_id, data=comparison_pairs_df, FUN=length)
-names(comparison_pairs_query_id_freq_df)[2] <- "query_id_freq"
-print(myplot_histogram(comparison_pairs_query_id_freq_df, "query_id_freq"))
-
-max_freq_query_id <- subset(comparison_pairs_query_id_freq_df, 
-        query_id_freq == max(comparison_pairs_query_id_freq_df$query_id_freq))$query_id
-myprint_df(subset(comparison_pairs_df, query_id == max_freq_query_id), dims=TRUE)
-myprint_df(subset(sentences_df, id == max_freq_query_id))
-
-comparison_pairs_old_df <- comparison_pairs_df
-comparison_pairs_old_df <- orderBy(~ query_id + compare_id, 
-                               data=comparison_pairs_old_df)
-
-stm_diff <- proc.time() - stm
-script_time_df <- rbind(script_time_df, 
-                        data.frame(chunk="find_compare_pairs_old", 
-                                   elapsed=stm_diff["elapsed"]))
-```
-
 Let's try initializing comparison_pairs_df to estimated density
-#```{r find_compare_pairs, cache=TRUE, autodep=TRUE}
-```{r find_compare_pairs}
+#```{r build_find_pairs_tools, cache=TRUE, autodep=TRUE}
+```{r build_find_pairs_tools}
 print(nrow(sentences_df))
 # Preallocate space for pairs that need to be compared 
-comparison_pairs_n_est <- (nrow(sentences_df) ^ 2) * 0.0005 * 1.05
+comparison_pairs_n_est <- (nrow(sentences_df) ^ 2) * 0.00010 * 1.05
 comparison_pairs_df <- data.frame(query_id=rep(-1, comparison_pairs_n_est),
                                   compare_id=rep(-1, comparison_pairs_n_est),
                                   is.common_query_word_1=rep(FALSE, 
                                                              comparison_pairs_n_est))
-common_words <- c("2007", "2008", 
-                "a", "about", "after", "again", "ago", "agora", "alex", "all", "also", 
-                    "am", "american", "and",
-                    "any", "alaska", "alone", "americans", "anything", "are", 
-                    "as", "at", 
+common_words <- c("000", "2001", "2007", "2008", 
+                "a", "abortion", "about", "action", "activities", "after", 
+                    "again", "ago", "agora", "ahora", 
+                    "alex", "all", "also", "although", 
+                    "am", "amazing", "america", "american", 
+                    "an", "and", "angeles", 
+                    "any", "alaska", "alone", "americans", "answers", "anything",
+                    "are", "area", 
+                    "around", "as", "at", 
                     "australia", "australian", "away",
-                "back", "be", "because", "been", "believe", "best", "bill", "bills", 
+                "back", "barack", "be", "because", "been", "before", "believe",
+                    "best", 
+                    "biggest", "bill", "bills", "bit", 
                     "blog", "both", "britney", "business", "but", "by", 
-                "campaign", "can", "change", "children", "china", "choice", "climate", 
-                    "cold", "com", "commitment", "companies", 
-                    "company", "con", "content", "country", 
-                    "crisis", "customers", 
-                "date", "day", "days", "did", "didnt", "disappointed", "do", "done", 
-                    "dont", "during",
-                "e", "economy", "el", "electoral", "en", "endeavor", "environment", 
-                    "equal", "es", "esta", 
+                "c", "came", "campaign", "can", "care", "casa", "change", "children",
+                    "china", 
+                    "choice", "city",
+                    "climate", 
+                    "coach", "cold", "com", "commitment", "companies", 
+                        "company", "con", "content", "cool", "costs", "could", 
+                        "country", 
+                    "crisis", "cruelty", "cuando", "customers", 
+                "das", "date", "day", "days", "de", "department", "desde", 
+                    "did", "didnt", "direction",
+                    "disappointed", "do", "done", "dont", "down", "during",
+                "e", "economy", "el", "electoral", "else", "em", "en", "endeavor", 
+                    "environment", 
+                    "equal", "es", "esta", "estoy", "eternity", 
                     "eu", "even", "events", "every", "everybody", "everyone", 
-                    "experience",
-                "facilities", "families", "feel", "first", "fit", "for", 
+                    "exciting", "experience", "expertise", 
+                "facilities", "fact", "families", "family", "feel", "few", 
+                    "first", "fit",
+                    "foi", "for", 
                     "formula", "from", 
-                    "fuel", "fund", "future", 
-                "games", "gas", "good", "got", "government", "grandchildren", "guy", 
-                "had", "happens", "has", "have", "he", "heart", "hell", 
-                    "helpful", "here",
-                    "hes",
-                    "hey", "him", "his", "history", "home", "hope", "hopefully",
-                    "house", 
-                    "how", 
-                "i", "id", "if", "il", "im", "in", "industry", "infection", "into",
-                    "interests", "iraq", 
+                    "fuel", "function", "fund", "future", 
+                "game", "games", "gas", "given", 
+                    "goal", "god", "good", "got", "government", 
+                    "grandchildren", "great", "guess", "guy", 
+                "had", "happens", "has", "have", "having", "he", "heart", "hell", 
+                    "helpful", "her", "here",
+                    "hes", "hey", "him", "his", "history", 
+                    "home", "hope", "hopefully", "house", "how", "however",
+                "i", "id", "idea", "if", "il", "ill", "im", 
+                    "in", "industry", "infection", "internet", "interest", 
+                        "interests", "internationally", "into", "investment", 
+                    "iraq", 
                     "is", "issue", "issues", "it", "its", "ive",
-                "just",
+                "jobs", "journalists", "just",
                 "kent", "know", 
-                "la", "las", "last", "law", "les", "life", "like", "lives", "lo",
-                    "looked", "looking", "love", 
-                "made", "man", "many", "market", "mas", "maybe", "me", "media",
-                    "members",
+                "la", "land", "las", "last", "law", "les", "less", "level", 
+                    "life", "like", 
+                    "lives", "lo",
+                    "looked", "looking", "los", "lot", "love", 
+                "made", "making", "man", "many", "market", "mas", "matter", 
+                    "maybe", "me",
+                    "mean", "media", "members", "met", 
                     "mine",
                     "more", "most", "mr", "my", "myself",
-                "n", "nation", "need", "never", "next", "night", "no", "nos", 
+                "n", "na", "nation", "need", "never", "new", "next", "night", 
+                    "no", "nos", 
                     "not", "now", "nu", 
-                "o", "obama", "of", "oh", "on", "one", "only", "opportunity", "our", 
-                    "out", "outcome", "overall", "own",
-                "para", "parece", "past", "people", "percent", "period", "place",
-                    "plazo", 
-                    "please", "policy", "politics", "por", "position", "problem",
-                    "process", 
-                    "program",
-                    "public", 
-                "que", "results", "right", "run",
-                "s", "said", "saya", "se", "secure", "selecci", "serious", "service",
-                    "she", "shes", "should", "si", "side", "so", "soil", "son",
-                    "staff", "state", "stop", "story", "study", "stuff", 
-                "tengo", "that", "thats", "the", "them", "themselves", "then", 
-                    "there", "theres", 
-                    "these", "they", "theyre", "thing", "think", "this", "though", 
-                    "time", "times", "tinha", "to", "today", "treatment", "tried",
+                "o", "obama", "of", "oh", "on", "one", "online", "only", 
+                    "operations", "opponent", "opportunity", "or", 
+                    "organization", "os", "others", "our", "out", "outcome", "over", 
+                    "overall", "own",
+                "para", "parece", "participants", "past", "people", "percent", 
+                    "period", "person", "peter", 
+                    "place", "plazo", "please", 
+                    "poderes", "policy", "politics", "por", "position", 
+                    "prices", "problem", "process", "program", "promise", 
+                    "public", "purpose",  
+                "que", "quickly", 
+                "really", "region", "results", "reuters", "ria", "right", 
+                    "ruling", "run",
+                "s", "said", "saya", "se", "sector", "secure", "see", "selecci",
+                    "serious", 
+                    "serve", "service",
+                    "she", "shes", "should", "si", "side", 
+                    "so", "society", "software", "soil", "solution", "some", "son",
+                    "spot", 
+                    "staff", "state", "stop", "story", "study", "stuff", "success",
+                    "sure", "surgery",
+                "t", "team", "tempo", "tengo", 
+                    "than", "that", "thats", 
+                    "the", "them", "themselves", "then", "there", "theres", 
+                        "these", "they", "theyre", 
+                    "thing", "things", "think", "this", 
+                    "those", "though", "thought",  
+                    "time", "times", "tinha", "to", "today", "todays", "too", 
+                    "treatment", "tried",
                     "two",
-                "un", "under", "unless", "up", "us",
-                "very",
-                "want", "war", "was", "way", "we", "week", "weeks", "well", 
+                "u", "un", "under", "unless", "up", "us",
+                "very", "violence", 
+                "wait", "want", "war", "was", "way", "we", "week", "weeks", "well", 
                     "were", "weve", 
-                    "what", "when", "whenever", "while", "white", "will", "with",
+                    "what", "when", "whenever", "where", "while", "white", "why",
+                    "will", "with",
                     "work", "working", 
                     "world", "words", "would", "wrong", 
                 "year", "years", "yet", "yo", "you", "youre")
@@ -557,7 +349,16 @@ get_compare_targets <- function (query_sentence_df, sentences_chk_df) {
 #                         )             
 #                         , c("id", "words_n")]
 
+stm_diff <- proc.time() - stm
+script_time_df <- rbind(script_time_df, 
+                        data.frame(chunk="build_find_pairs_tools", 
+                                   elapsed=stm_diff["elapsed"]))
+```
 
+Find potential pairs with edit distance at most 1 to be compared. 
+This implies that for any query sentence, we need only compare that with sentences that have +/- 1 words length 
+#```{r find_pairs_old, cache=TRUE, autodep=TRUE}
+```{r find_pairs_old}
 loop_step_id_set <- c(  "1_Identified_Query"
                       , "2_Filtered_Length"
                       , "3_Filtered_Dups"
@@ -569,7 +370,7 @@ loop_df[, names(summary(proc.time()))] <-
     rep(0, length(names(summary(proc.time()))) * nrow(loop_df)) 
 
 #for (loop_step_id in loop_df$loop_step_id) {
-for (loop_step_id in loop_df$loop_step_id[5:5]) {   
+for (loop_step_id in loop_df$loop_step_id[2:5]) {   
     ltm <- proc.time()
     ltm_diff <- proc.time() - ltm
 
@@ -597,11 +398,12 @@ for (loop_step_id in loop_df$loop_step_id[5:5]) {
             sentences_chk_df <- sentences_df[pos_beg:pos_end ,] 
         }
         
-        if (toString(loop_step_id) >= toString(loop_step_id_set[3])) {        
+        if (toString(loop_step_id) >= toString(loop_step_id_set[3])) {
+             # avoid dups in candidate pairs       
             sentences_chk_df <- subset(sentences_chk_df,
-                                       (sentences_chk_df$id != row_id) &
-                                       (sentences_chk_df$id < row_id) # to avoid dups       
-                                      )
+                                       #(sentences_chk_df$id != row_id) &
+                                       (id < row_id) # to avoid dups       
+                                      )            
         }
         
         if (toString(loop_step_id) >= toString(loop_step_id_set[4])) {
@@ -642,10 +444,6 @@ for (loop_step_id in loop_df$loop_step_id[5:5]) {
     loop_df[loop_df$loop_step_id == loop_step_id, 
                        names(summary(ltm_diff))] <- summary(ltm_diff)
 }
-comparison_pairs_df <- subset(comparison_pairs_df, query_id > -1)
-comparison_pairs_df <- orderBy(~ query_id + compare_id, 
-                               data=comparison_pairs_df)
-
 loop_steps_plot_df <- melt(loop_df, id="loop_step_id", 
                            measure=c("user", "system", "elapsed"))
 p <- ggplot(data=loop_steps_plot_df, mapping=aes(x=loop_step_id, y=value)) + 
@@ -656,6 +454,10 @@ loop_df$user_diff <- sapply(seq(1, nrow(loop_df)),
                             function(step) ifelse(step <= 1, NA,
                             loop_df[step, "user"] - loop_df[step - 1, "user"]))
 print(loop_df)
+
+comparison_pairs_df <- subset(comparison_pairs_df, query_id > -1)
+comparison_pairs_df <- orderBy(~ query_id + compare_id, 
+                               data=comparison_pairs_df)
 
 print(sprintf("Pairs to be checked: %s", 
               format(nrow(comparison_pairs_df), big.mark=',')))
@@ -674,37 +476,161 @@ max_freq_query_id <- subset(comparison_pairs_query_id_freq_df,
 myprint_df(subset(comparison_pairs_df, query_id == max_freq_query_id), dims=TRUE)
 myprint_df(subset(sentences_df, id == max_freq_query_id))
 
-print_old_new_comparison_pairs <- function(this_id) {
-    print("old:")
-    myprint_df(subset(comparison_pairs_old_df, query_id == this_id), dims=TRUE)
-    print("new:")    
-    myprint_df(subset(comparison_pairs_df, query_id == this_id), dims=TRUE)
-}
-
-print(sprintf("# old comparison pairs: %s", format(nrow(comparison_pairs_old_df), big.mark=",")))
-print(sprintf("# comparison pairs: %s", format(nrow(comparison_pairs_df), big.mark=",")))
-intersect(names(comparison_pairs_old_df), names(comparison_pairs_df))
-comparison_pairs_tmp_df <- 
-    merge(cbind(comparison_pairs_df,     data.frame(new=rep(1, nrow(comparison_pairs_df)))), 
-          cbind(comparison_pairs_old_df, data.frame(old=rep(1, nrow(comparison_pairs_old_df)))),
-          by=c("query_id", "compare_id"), all.x = TRUE, suffixes=c(".new", ".old"))
-comparison_pairs_tmp_df <- orderBy(~ query_id + compare_id, 
-                                    data=comparison_pairs_tmp_df)
-print(all.equal(comparison_pairs_tmp_df[, c("query_id", "compare_id")], 
-                comparison_pairs_df    [, c("query_id", "compare_id")]))
-# if (!isTRUE(all.equal(comparison_pairs_tmp_df[, 1:(ncol(comparison_pairs_tmp_df) - 2)], 
-#                 comparison_pairs_df))) {
-    print("new not in old comparison pairs:")
-    print(subset(comparison_pairs_tmp_df, is.na(old)))
-    #print(subset(comparison_pairs_tmp_df, new != old))
-# }
-# print_old_new_comparison_pairs(4986)
-# print(sentences_df[sentences_df$id == 77, "words_lst"])
-# print(sentences_df[sentences_df$id == 75, "words_lst"])
+# comparison_pairs_old_df <- comparison_pairs_df
+# comparison_pairs_old_df <- orderBy(~ query_id + compare_id, 
+#                                data=comparison_pairs_old_df)
 
 stm_diff <- proc.time() - stm
 script_time_df <- rbind(script_time_df, 
-                        data.frame(chunk="find_compare_pairs", 
+                        data.frame(chunk="find_pairs_old", 
+                                   elapsed=stm_diff["elapsed"]))
+```
+
+```{r find_pairs}
+loop_step_id_set <- c(  "1_Identified_Query"
+                      , "2_Filtered_Length"
+                      , "3_Filtered_Dups"
+                      , "4_Filtered_FirstLast"
+                      , "5_Appended_DFrame"
+                     )
+loop_df <- data.frame(loop_step_id=loop_step_id_set)
+loop_df[, names(summary(proc.time()))] <- 
+    rep(0, length(names(summary(proc.time()))) * nrow(loop_df)) 
+
+#for (loop_step_id in loop_df$loop_step_id) {
+for (loop_step_id in loop_df$loop_step_id[2:5]) {   
+    ltm <- proc.time()
+    ltm_diff <- proc.time() - ltm
+
+    comparison_pairs_urow <- 0
+    for (row_pos in seq(1:nrow(sentences_df))) {    
+        
+        if (toString(loop_step_id) >= toString(loop_step_id_set[1])) {
+            row_words_n <- sentences_df[row_pos, "words_n"]
+            row_word_1 <- sentences_df[row_pos, "word_1"]            
+            row_id <- sentences_df[row_pos, "id"]
+        }
+        
+        if (toString(loop_step_id) >= toString(loop_step_id_set[2])) {
+            sntnc_lengths_row_pos <- 
+                which(sntnc_lengths_df$words_n == row_words_n)
+            
+            if (sntnc_lengths_row_pos != 1) { 
+                pos_beg <- sntnc_lengths_df[sntnc_lengths_row_pos - 1, "pos_beg"]
+            } else pos_beg <- 1
+            
+            if (sntnc_lengths_row_pos != nrow(sntnc_lengths_df)) {
+                pos_end <- sntnc_lengths_df[sntnc_lengths_row_pos + 1, "pos_end"]
+            } else pos_end <- nrow(sentences_df)
+                
+            sentences_chk_df <- sentences_df[pos_beg:pos_end ,] 
+        }
+        
+        if (toString(loop_step_id) >= toString(loop_step_id_set[3])) {
+            sentences_chk_df <- sentences_chk_df[sentences_chk_df$id < row_id, ]            
+        }
+        
+        if (toString(loop_step_id) >= toString(loop_step_id_set[4])) {
+            sentences_compare_df <- get_compare_targets(sentences_df[row_pos, ], 
+                                                        sentences_chk_df)                
+        }
+        
+        if (toString(loop_step_id) >= toString(loop_step_id_set[5])) { 
+            newpairs_n <- nrow(sentences_compare_df)
+            if (newpairs_n > 0) {            
+               comparison_pairs_df[(comparison_pairs_urow + 1):
+                                   (comparison_pairs_urow + newpairs_n),
+                                   "query_id"] <- 
+                   rep(row_id, newpairs_n)
+               comparison_pairs_df[(comparison_pairs_urow + 1):
+                                   (comparison_pairs_urow + newpairs_n),
+                                   "compare_id"] <- sentences_compare_df$id
+               comparison_pairs_df[(comparison_pairs_urow + 1):
+                                   (comparison_pairs_urow + newpairs_n),
+                                   "is.common_query_word_1"] <- 
+                   rep(ifelse(row_word_1 %in% common_words,
+                              TRUE, FALSE), newpairs_n)
+               
+
+                # this approach takes longer probably due to the collecting on
+                #   the rhs
+#                 comparison_pairs_df[(comparison_pairs_urow + 1):
+#                                     (comparison_pairs_urow + newpairs_n),
+#                                     c("query_id", "compare_id")] <- 
+#                     c(rep(row_id, newpairs_n), sentences_compare_df$id)
+
+                comparison_pairs_urow <- comparison_pairs_urow + newpairs_n
+            }    
+        }
+    }
+    comparison_pairs_df <- subset(comparison_pairs_df, query_id > -1)
+    ltm_diff <- proc.time() - ltm
+    loop_df[loop_df$loop_step_id == loop_step_id, 
+                       names(summary(ltm_diff))] <- summary(ltm_diff)
+}
+loop_steps_plot_df <- melt(loop_df, id="loop_step_id", 
+                           measure=c("user", "system", "elapsed"))
+p <- ggplot(data=loop_steps_plot_df, mapping=aes(x=loop_step_id, y=value)) + 
+        geom_line(aes(group=variable, color=variable)) 
+print(p)
+
+loop_df$user_diff <- sapply(seq(1, nrow(loop_df)), 
+                            function(step) ifelse(step <= 1, NA,
+                            loop_df[step, "user"] - loop_df[step - 1, "user"]))
+print(loop_df)
+
+comparison_pairs_df <- subset(comparison_pairs_df, query_id > -1)
+comparison_pairs_df <- orderBy(~ query_id + compare_id, 
+                               data=comparison_pairs_df)
+
+print(sprintf("Pairs to be checked: %s", 
+              format(nrow(comparison_pairs_df), big.mark=',')))
+print(sprintf("Comparison density: %0.4f", 
+              nrow(comparison_pairs_df) / (nrow(sentences_df) ^ 2)))
+myprint_df(comparison_pairs_df)
+
+### check which query_id generates the most comparison pairs
+comparison_pairs_query_id_freq_df <- 
+    summaryBy(query_id ~ query_id, data=comparison_pairs_df, FUN=length)
+names(comparison_pairs_query_id_freq_df)[2] <- "query_id_freq"
+print(myplot_histogram(comparison_pairs_query_id_freq_df, "query_id_freq"))
+
+max_freq_query_id <- subset(comparison_pairs_query_id_freq_df, 
+        query_id_freq == max(comparison_pairs_query_id_freq_df$query_id_freq))$query_id
+myprint_df(subset(comparison_pairs_df, query_id == max_freq_query_id), dims=TRUE)
+myprint_df(subset(sentences_df, id == max_freq_query_id))
+
+# print_old_new_comparison_pairs <- function(this_id) {
+#     print("old:")
+#     myprint_df(subset(comparison_pairs_old_df, query_id == this_id), dims=TRUE)
+#     print("new:")    
+#     myprint_df(subset(comparison_pairs_df, query_id == this_id), dims=TRUE)
+# }
+# 
+# print(sprintf("# old comparison pairs: %s", format(nrow(comparison_pairs_old_df), big.mark=",")))
+# print(sprintf("# comparison pairs: %s", format(nrow(comparison_pairs_df), big.mark=",")))
+# intersect(names(comparison_pairs_old_df), names(comparison_pairs_df))
+# comparison_pairs_tmp_df <- 
+#     merge(cbind(comparison_pairs_df,     data.frame(new=rep(1, nrow(comparison_pairs_df)))), 
+#           cbind(comparison_pairs_old_df, data.frame(old=rep(1, nrow(comparison_pairs_old_df)))),
+#           by=c("query_id", "compare_id"), all.x = TRUE, suffixes=c(".new", ".old"))
+# comparison_pairs_tmp_df <- orderBy(~ query_id + compare_id, 
+#                                     data=comparison_pairs_tmp_df)
+# print(all.equal(comparison_pairs_tmp_df[, c("query_id", "compare_id")], 
+#                 comparison_pairs_df    [, c("query_id", "compare_id")]))
+# # if (!isTRUE(all.equal(comparison_pairs_tmp_df[, 1:(ncol(comparison_pairs_tmp_df) - 2)], 
+# #                 comparison_pairs_df))) {
+#     print("new not in old comparison pairs:")
+#     print(subset(comparison_pairs_tmp_df, is.na(old)))
+#     #print(subset(comparison_pairs_tmp_df, new != old))
+# # }
+# # print_old_new_comparison_pairs(4986)
+# # print(sentences_df[sentences_df$id == 77, "words_lst"])
+# # print(sentences_df[sentences_df$id == 75, "words_lst"])
+
+stm_diff <- proc.time() - stm
+script_time_df <- rbind(script_time_df, 
+                        data.frame(chunk="find_pairs", 
                                    elapsed=stm_diff["elapsed"]))
 ```
 
@@ -946,7 +872,7 @@ print(sprintf("Number of sentences read: %s",
               format(nrow(sentences_df), big.mark=',')))
 print(sprintf("Number of comparison pairs: %s", 
               format(nrow(comparison_pairs_df), big.mark=',')))
-print(sprintf("Comparison density: %0.4f", 
+print(sprintf("Comparison density: %0.5f", 
               nrow(comparison_pairs_df) / (nrow(sentences_df) ^ 2)))
 print(sprintf("Number of sentence pairs within edit distance of 1: %s",
               format(sum(comparison_pairs_df$edit_distance <= 1), big.mark=',')))
